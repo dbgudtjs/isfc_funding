@@ -99,14 +99,9 @@
   <!-- ============ 탭 3. 선수단 ============ -->
   <section class="tab-panel" id="tab-roster">
     <h2 class="section-title">선수단 <span class="roster-sub">STARTING XI</span></h2>
-    <p class="roster-help">펀딩하실 때 선호 포메이션·포지션·등번호를 알려주시면 그 자리에 등록해드려요. 같은 자리에 여러 명이 겹치면 모금액이 큰 분이 표시됩니다.</p>
+    <p class="roster-help">펀딩하실 때 선호 포지션·등번호를 알려주시면 4-2-3-1 포메이션의 그 자리에 등록해드려요. 같은 자리에 여러 명이 겹치면 모금액이 큰 분이 표시됩니다.</p>
 
-    <div class="formation-switch" id="formationSwitch">
-      <button class="fbtn is-active" data-formation="433">4-3-3</button>
-      <button class="fbtn" data-formation="4231">4-2-3-1</button>
-      <button class="fbtn" data-formation="4222">4-2-2-2</button>
-    </div>
-
+    <p class="formation-tag">FORMATION · 4-2-3-1</p>
     <p class="slot-legend" id="slotLegend"></p>
 
     <div class="pitch-wrap">
@@ -143,7 +138,7 @@
       <span class="stub-value" id="bankHolder">-</span>
     </div>
     <a class="kakaopay-link" id="kakaopayLink" href="#" rel="noopener" hidden>카카오페이로 송금하기 →</a>
-    <p class="modal-footnote">입금 시 선호 포메이션·포지션·등번호를 함께 알려주시면 선수단에 등록해드려요.</p>
+    <p class="modal-footnote">입금 시 학번·선호 포지션·등번호를 함께 알려주시면 선수단에 등록해드려요.</p>
   </div>
 </div>
 
@@ -160,13 +155,13 @@
    CONFIG
    ============================================================ */
 const CONFIG = {
-  SETTINGS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=0&single=true&output=csv",     // "설정" 탭 웹에 게시 CSV 링크 
-  PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=427125560&single=true&output=csv", // "참여자" 탭 웹에 게시 CSV 링크DRIVE_FOLDER_ID: "",      // 사진첩용 구글드라이브 폴더 ID (링크가 있는 모든 사용자로 공유 필요)
+  SETTINGS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=0&single=true&output=csv",
+  PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=427125560&single=true&output=csv",
   DRIVE_FOLDER_ID: "",      // 사진첩용 구글드라이브 폴더 ID (링크가 있는 모든 사용자로 공유 필요)
   DRIVE_API_KEY: "",        // 구글 클라우드 콘솔에서 발급한 Drive API 키
   REFRESH_MS: 30000
 };
- 
+
 /* ---------------- 예시(데모) 데이터 ---------------- */
 const DEMO_SETTINGS = {
   "제목": "ISFC 20주년 후원 펀딩",
@@ -183,7 +178,7 @@ const DEMO_PARTICIPANTS = [
   { "이름": "박OO", "금액": "100000", "학번": "18", "포지션": "CDMR", "등번호": "10", "사진URL": "" },
   { "이름": "최OO", "금액": "20000", "학번": "21", "포지션": "CAM", "등번호": "7", "사진URL": "" }
 ];
- 
+
 /* ---------------- CSV 파서 ---------------- */
 function parseCSV(text) {
   const rows = [];
@@ -206,7 +201,7 @@ function parseCSV(text) {
   if (field.length || row.length) { row.push(field); rows.push(row); }
   return rows.filter(r => !(r.length === 1 && r[0].trim() === ""));
 }
- 
+
 function csvToObjects(text) {
   const rows = parseCSV(text);
   if (rows.length < 1) return [];
@@ -217,18 +212,18 @@ function csvToObjects(text) {
     return obj;
   });
 }
- 
+
 function toNumber(str) {
   const n = parseInt(String(str).replace(/[^0-9-]/g, ""), 10);
   return isNaN(n) ? 0 : n;
 }
- 
+
 function escapeHTML(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
 }
- 
+
 /* ============================================================
    탭 전환
    ============================================================ */
@@ -240,7 +235,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.getElementById("tab-" + btn.dataset.tab).classList.add("is-active");
   });
 });
- 
+
 /* ============================================================
    메인 대시보드
    ============================================================ */
@@ -249,13 +244,13 @@ async function fetchCSV(url) {
   if (!res.ok) throw new Error("fetch failed");
   return await res.text();
 }
- 
+
 let latestParticipants = DEMO_PARTICIPANTS;
 let latestSettings = DEMO_SETTINGS;
- 
+
 async function loadMainData() {
   let settings, participants, isDemo = false;
- 
+
   if (CONFIG.SETTINGS_CSV_URL && CONFIG.PARTICIPANTS_CSV_URL) {
     try {
       const [settingsText, participantsText] = await Promise.all([
@@ -281,13 +276,13 @@ async function loadMainData() {
     participants = DEMO_PARTICIPANTS;
     isDemo = true;
   }
- 
+
   latestSettings = settings;
   latestParticipants = participants;
   renderMain(settings, participants, isDemo);
   renderRoster();
 }
- 
+
 function animateNumber(el, to) {
   const from = toNumber(el.textContent.replace(/,/g, ""));
   const duration = 700;
@@ -301,35 +296,35 @@ function animateNumber(el, to) {
   }
   requestAnimationFrame(step);
 }
- 
+
 const RING_CIRCUMFERENCE = 2 * Math.PI * 86;
- 
+
 function renderMain(settings, participants, isDemo) {
   document.getElementById("demoNotice").hidden = !isDemo;
   document.getElementById("title").textContent = settings["제목"] || "ISFC 20주년 후원 펀딩";
   document.getElementById("desc").textContent = settings["설명"] || "";
- 
+
   const target = toNumber(settings["목표금액"]);
   const raised = participants.reduce((sum, p) => sum + toNumber(p["금액"]), 0);
   const count = participants.length;
   const rate = target > 0 ? Math.min(100, Math.round((raised / target) * 1000) / 10) : 0;
   const avg = count > 0 ? Math.round(raised / count) : 0;
   const remain = Math.max(0, target - raised);
- 
+
   animateNumber(document.getElementById("raisedAmount"), raised);
   animateNumber(document.getElementById("targetAmount"), target);
   animateNumber(document.getElementById("avgAmount"), avg);
   animateNumber(document.getElementById("remainAmount"), remain);
   document.getElementById("participantCount").textContent = count.toLocaleString("ko-KR");
- 
+
   const ring = document.getElementById("ringFill");
   ring.style.strokeDasharray = String(RING_CIRCUMFERENCE);
   ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - rate / 100));
   document.getElementById("ratePct").textContent = rate + "%";
- 
+
   const litStars = Math.max(1, Math.round((rate / 100) * 7));
   document.getElementById("crestStars").textContent = "★".repeat(litStars) + "☆".repeat(7 - litStars);
- 
+
   const list = document.getElementById("rosterListMain");
   if (count === 0) {
     list.innerHTML = '<p class="empty-state">아직 참가자가 없어요. 첫 참가자가 되어보세요.</p>';
@@ -345,18 +340,18 @@ function renderMain(settings, participants, isDemo) {
       })
       .join("");
   }
- 
+
   document.getElementById("bankName").textContent = settings["은행명"] || "-";
   document.getElementById("bankAccount").textContent = settings["계좌번호"] || "-";
   document.getElementById("bankHolder").textContent = settings["예금주"] || "-";
   const kakaopay = settings["카카오페이링크"];
   const kakaopayEl = document.getElementById("kakaopayLink");
   if (kakaopay) { kakaopayEl.href = kakaopay; kakaopayEl.hidden = false; } else { kakaopayEl.hidden = true; }
- 
+
   document.getElementById("updatedAt").textContent =
     "마지막 업데이트 " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 }
- 
+
 /* ---------------- 펀딩 모달 ---------------- */
 const backdrop = document.getElementById("modalBackdrop");
 function openModal() { backdrop.classList.add("is-open"); }
@@ -364,7 +359,7 @@ function closeModal() { backdrop.classList.remove("is-open"); }
 document.getElementById("fundBtn").addEventListener("click", openModal);
 document.getElementById("modalClose").addEventListener("click", closeModal);
 backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
- 
+
 document.getElementById("copyBtn").addEventListener("click", async () => {
   const text = document.getElementById("bankAccount").textContent;
   try {
@@ -375,7 +370,7 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
     setTimeout(() => { btn.textContent = original; }, 1500);
   } catch (e) { /* clipboard unavailable */ }
 });
- 
+
 /* ============================================================
    사진첩 (구글드라이브)
    ============================================================ */
@@ -385,13 +380,13 @@ async function loadGallery() {
   const errorBox = document.getElementById("galleryError");
   notice.hidden = true;
   errorBox.hidden = true;
- 
+
   if (!CONFIG.DRIVE_FOLDER_ID || !CONFIG.DRIVE_API_KEY) {
     notice.hidden = false;
     grid.innerHTML = '<p class="empty-state">폴더 연결 후 이곳에 사진이 자동으로 표시됩니다.</p>';
     return;
   }
- 
+
   try {
     const q = `'${CONFIG.DRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed = false`;
     const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent("files(id,name)")}&orderBy=createdTime desc&pageSize=100&key=${CONFIG.DRIVE_API_KEY}`;
@@ -399,18 +394,18 @@ async function loadGallery() {
     if (!res.ok) throw new Error("drive fetch failed");
     const data = await res.json();
     const files = data.files || [];
- 
+
     if (files.length === 0) {
       grid.innerHTML = '<p class="empty-state">폴더에 사진이 아직 없어요.</p>';
       return;
     }
- 
+
     grid.innerHTML = files.map(f => {
       const thumb = `https://drive.google.com/thumbnail?id=${f.id}&sz=w500`;
       const full = `https://drive.google.com/thumbnail?id=${f.id}&sz=w1600`;
       return `<button class="gallery-item" data-full="${full}" aria-label="${escapeHTML(f.name)}"><img src="${thumb}" alt="${escapeHTML(f.name)}" loading="lazy"></button>`;
     }).join("");
- 
+
     grid.querySelectorAll(".gallery-item").forEach(item => {
       item.addEventListener("click", () => openLightbox(item.dataset.full));
     });
@@ -420,7 +415,7 @@ async function loadGallery() {
     grid.innerHTML = "";
   }
 }
- 
+
 const lightboxBackdrop = document.getElementById("lightboxBackdrop");
 function openLightbox(src) {
   document.getElementById("lightboxImg").src = src;
@@ -432,11 +427,11 @@ function closeLightbox() {
 }
 document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
 lightboxBackdrop.addEventListener("click", (e) => { if (e.target === lightboxBackdrop) closeLightbox(); });
- 
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { closeModal(); closeLightbox(); }
 });
- 
+
 /* ============================================================
    선수단 (포메이션 로스터)
    ============================================================ */
@@ -450,15 +445,15 @@ const FORMATION = {
     ST:  { top: 10, left: 50 }
   }
 };
- 
+
 function normalizePositionCode(str) {
   return String(str || "").toUpperCase().replace(/[\s\-_]/g, "");
 }
- 
+
 function renderRoster() {
   document.getElementById("slotLegend").textContent =
     "포지션 코드: " + Object.keys(FORMATION.slots).join(" · ");
- 
+
   // 슬롯별로 금액이 가장 큰 참가자만 채택
   const bySlot = {};
   latestParticipants.forEach(p => {
@@ -469,7 +464,7 @@ function renderRoster() {
       bySlot[slot] = p;
     }
   });
- 
+
   const container = document.getElementById("pitchSlots");
   container.innerHTML = Object.entries(FORMATION.slots).map(([code, pos]) => {
     const p = bySlot[code];
@@ -491,14 +486,14 @@ function renderRoster() {
     </div>`;
   }).join("");
 }
- 
+
 /* ---------------- 시작 ---------------- */
 loadMainData();
 loadGallery();
 renderRoster();
 setInterval(loadMainData, CONFIG.REFRESH_MS);
 </script>
- 
+
 <style>
 :root {
   --bg: #131315;
@@ -516,9 +511,9 @@ setInterval(loadMainData, CONFIG.REFRESH_MS);
   --font-mono: 'IBM Plex Mono', monospace;
   --font-body: 'Noto Sans KR', sans-serif;
 }
- 
+
 * { box-sizing: border-box; }
- 
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -532,7 +527,7 @@ body {
   padding: 32px 16px 64px;
   position: relative;
 }
- 
+
 body::before {
   content: "";
   position: fixed;
@@ -543,9 +538,9 @@ body::before {
     repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
   mix-blend-mode: overlay;
 }
- 
+
 .masthead { text-align: center; padding: 12px 0 4px; max-width: 640px; margin: 0 auto; }
- 
+
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -554,7 +549,7 @@ body::before {
   margin: 0 0 12px;
   font-weight: 600;
 }
- 
+
 .masthead h1 {
   font-family: var(--font-display);
   font-weight: 700;
@@ -568,9 +563,9 @@ body::before {
   color: transparent;
   text-shadow: 0 2px 24px rgba(205,164,74,0.15);
 }
- 
+
 .desc { color: var(--ink-soft); font-size: 14px; margin: 0; line-height: 1.6; max-width: 480px; margin-inline: auto; }
- 
+
 .tabnav {
   max-width: 640px;
   margin: 24px auto 0;
@@ -578,7 +573,7 @@ body::before {
   gap: 4px;
   border-bottom: 1px solid var(--line);
 }
- 
+
 .tab-btn {
   flex: 1;
   background: none;
@@ -597,12 +592,12 @@ body::before {
 .tab-btn:hover { color: var(--ink); }
 .tab-btn.is-active { color: var(--gold-bright); border-bottom-color: var(--gold); }
 .tab-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
- 
+
 .wrap { max-width: 640px; margin: 0 auto; position: relative; }
- 
+
 .tab-panel { display: none; flex-direction: column; gap: 22px; padding-top: 24px; }
 .tab-panel.is-active { display: flex; }
- 
+
 .notice {
   background: rgba(205,164,74,0.12);
   border: 1px solid var(--gold);
@@ -613,7 +608,7 @@ body::before {
   text-align: center;
 }
 .notice-error { background: rgba(178,76,52,0.12); border-color: #b24c34; color: #e08a72; }
- 
+
 .card {
   background: linear-gradient(180deg, var(--panel-raised), var(--panel));
   border: 1px solid var(--line);
@@ -622,7 +617,7 @@ body::before {
   position: relative;
   box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6);
 }
- 
+
 .amount-row {
   display: flex;
   justify-content: space-between;
@@ -633,16 +628,16 @@ body::before {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
 }
- 
+
 .amount-block { display: flex; flex-direction: column; gap: 6px; }
 .amount-block.target { text-align: right; align-items: flex-end; }
- 
+
 .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; color: var(--ink-soft); }
- 
+
 .figure { font-family: var(--font-mono); font-weight: 700; font-size: clamp(28px, 6.5vw, 40px); color: var(--ink); }
 .figure::after { content: "원"; font-size: 0.4em; margin-left: 4px; color: var(--ink-soft); font-family: var(--font-body); font-weight: 400; }
 .figure-target { color: var(--ink-soft); font-size: clamp(18px, 4vw, 24px); }
- 
+
 .crest { position: relative; width: 200px; margin: 8px auto 30px; display: flex; flex-direction: column; align-items: center; }
 .crest-stars { color: var(--gold); font-size: 13px; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 12px rgba(205,164,74,0.5); }
 .crest-ring { width: 200px; height: 200px; transform: rotate(-90deg); }
@@ -655,20 +650,20 @@ body::before {
 .crest-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .crest-pct { font-family: var(--font-mono); font-weight: 700; font-size: 34px; color: var(--ink); }
 .crest-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--gold); }
- 
+
 .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); padding-top: 6px; }
 .stat { text-align: center; display: flex; flex-direction: column; gap: 6px; }
 .stat:not(:last-child) { border-right: 1px solid var(--line); }
 .stat-num { font-family: var(--font-mono); font-weight: 700; font-size: 18px; color: var(--ink); }
 .stat-label { font-size: 11px; color: var(--ink-soft); }
- 
+
 .roster-title, .section-title {
   font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em;
   font-size: 18px; font-weight: 600; margin: 0 0 18px;
   display: flex; align-items: baseline; gap: 10px; color: var(--ink);
 }
 .roster-sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--gold); font-weight: 400; }
- 
+
 .roster-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
 .roster-row { display: flex; align-items: baseline; gap: 12px; font-size: 14px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
 .roster-num { font-family: var(--font-mono); color: var(--gold); font-weight: 700; font-size: 12px; width: 22px; flex-shrink: 0; }
@@ -676,9 +671,9 @@ body::before {
 .roster-sid { font-family: var(--font-mono); font-size: 10px; color: var(--ink-soft); font-weight: 400; margin-left: 4px; }
 .dots { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-4px); }
 .roster-amt { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; color: var(--ink); }
- 
+
 .empty-state { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 20px 0; grid-column: 1 / -1; }
- 
+
 .cta {
   display: block; width: 100%; padding: 19px;
   background: linear-gradient(180deg, var(--maroon-bright), var(--maroon));
@@ -691,9 +686,9 @@ body::before {
 .cta:hover { box-shadow: 0 14px 34px -8px rgba(110,28,58,0.75); }
 .cta:active { transform: scale(0.99); }
 .cta:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
- 
+
 .updated { text-align: center; font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); margin: 0; }
- 
+
 /* ---------------- 사진첩 ---------------- */
 .gallery-grid {
   display: grid;
@@ -713,21 +708,21 @@ body::before {
 .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
 .gallery-item:hover img { transform: scale(1.06); }
 .gallery-item:focus-visible { outline: 2px solid var(--gold); }
- 
+
 .lightbox { max-width: 90vw; max-height: 85vh; position: relative; }
 .lightbox img { max-width: 90vw; max-height: 85vh; display: block; border-radius: var(--radius); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8); }
 .lightbox .modal-close { top: -36px; right: 0; color: var(--ink); }
- 
+
 /* ---------------- 선수단 / 포메이션 ---------------- */
 .roster-help { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: -10px 0 0; }
- 
+
 .formation-tag {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em;
   color: var(--gold); margin: 0; font-weight: 600;
 }
- 
+
 .slot-legend { font-family: var(--font-mono); font-size: 10px; color: var(--ink-soft); letter-spacing: 0.03em; margin: 0; line-height: 1.6; }
- 
+
 .pitch-wrap {
   position: relative;
   width: 100%;
@@ -739,7 +734,7 @@ body::before {
 }
 .pitch-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
 .pitch-slots { position: absolute; inset: 0; }
- 
+
 .slot {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -749,7 +744,7 @@ body::before {
   gap: 3px;
   width: 15%;
 }
- 
+
 .slot-circle {
   width: 34px; height: 34px;
   border-radius: 50%;
@@ -757,13 +752,13 @@ body::before {
   position: relative;
   margin: 0 auto;
 }
- 
+
 .slot-empty .slot-circle {
   border: 1.5px dashed rgba(240,238,233,0.35);
   background: rgba(0,0,0,0.15);
 }
 .slot-code { font-family: var(--font-mono); font-size: 8px; color: rgba(240,238,233,0.55); letter-spacing: 0.02em; }
- 
+
 .slot-filled .slot-circle {
   border: 2px solid var(--gold);
   background: var(--maroon);
@@ -788,7 +783,7 @@ body::before {
   padding: 1px 5px; border-radius: 3px; white-space: nowrap;
   max-width: 60px; overflow: hidden; text-overflow: ellipsis;
 }
- 
+
 /* ---------------- 모달 공통 ---------------- */
 .modal-backdrop {
   position: fixed; inset: 0;
@@ -797,7 +792,7 @@ body::before {
   padding: 16px; z-index: 10;
 }
 .modal-backdrop.is-open { display: flex; }
- 
+
 .modal {
   background: linear-gradient(180deg, var(--panel-raised), var(--panel));
   border: 1px solid var(--line);
@@ -807,38 +802,38 @@ body::before {
   position: relative;
   box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8);
 }
- 
+
 .modal-close {
   position: absolute; top: 12px; right: 14px;
   background: none; border: none; font-size: 22px; line-height: 1;
   color: var(--ink-soft); cursor: pointer;
 }
 .modal-close:focus-visible { outline: 2px solid var(--gold); }
- 
+
 .stub-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; color: var(--gold); margin: 0 0 8px; }
 .modal h3 { font-family: var(--font-display); text-transform: uppercase; font-size: 20px; margin: 0 0 20px; color: var(--ink); }
- 
+
 .stub-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
 .stub-label { width: 70px; flex-shrink: 0; color: var(--ink-soft); font-size: 12px; }
 .stub-value { flex: 1; font-weight: 600; color: var(--ink); }
 .stub-value.mono { font-family: var(--font-mono); }
- 
+
 .copy-btn {
   background: rgba(205,164,74,0.12); border: 1px solid var(--gold); color: var(--gold-bright);
   font-size: 11px; padding: 4px 10px; border-radius: var(--radius); cursor: pointer; font-family: var(--font-body);
 }
 .copy-btn:hover { background: var(--gold); color: #1b1b1e; }
- 
+
 .kakaopay-link {
   display: block; margin-top: 16px; text-align: center;
   background: linear-gradient(180deg, var(--gold-bright), var(--gold));
   color: #1b1b1e; text-decoration: none; font-weight: 700; padding: 12px; border-radius: var(--radius); font-size: 14px;
 }
- 
+
 .modal-footnote { margin: 16px 0 0; font-size: 11px; color: var(--ink-soft); text-align: center; }
- 
+
 @media (prefers-reduced-motion: reduce) { .ring-fill { transition: none; } }
- 
+
 @media (max-width: 420px) {
   .gallery-grid { grid-template-columns: repeat(2, 1fr); }
   .slot-circle { width: 28px; height: 28px; }
