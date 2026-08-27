@@ -99,7 +99,7 @@
   <!-- ============ 탭 3. 선수단 ============ -->
   <section class="tab-panel" id="tab-roster">
     <h2 class="section-title">선수단 <span class="roster-sub">STARTING XI</span></h2>
-    <p class="roster-help">펀딩하실 때 선호 포지션·등번호를 알려주시면 4-2-3-1 포메이션의 그 자리에 등록해드려요. 같은 자리에 여러 명이 겹치면 모금액이 큰 분이 표시됩니다.</p>
+    <p class="roster-help">펀딩하실 때 이름·학번·선호 포지션·등번호를 알려주시면 4-2-3-1 포메이션의 그 자리에 등록해드려요. 같은 자리에 여러 명이 겹치면 모금액이 큰 분이 표시됩니다.</p>
 
     <p class="formation-tag">FORMATION · 4-2-3-1</p>
     <p class="slot-legend" id="slotLegend"></p>
@@ -138,7 +138,16 @@
       <span class="stub-value" id="bankHolder">-</span>
     </div>
     <a class="kakaopay-link" id="kakaopayLink" href="#" rel="noopener" hidden>카카오페이로 송금하기 →</a>
-    <p class="modal-footnote">입금 시 학번·선호 포지션·등번호를 함께 알려주시면 선수단에 등록해드려요.</p>
+
+    <div class="register-box">
+      <p class="register-title">선수단 등록을 원하시면 입금 후 아래 4가지를 함께 보내주세요</p>
+      <ul class="register-list">
+        <li><span class="register-key">이름</span>실명 (예: 유형선)</li>
+        <li><span class="register-key">학번</span>예: 14</li>
+        <li><span class="register-key">포지션</span>GK · LB · CBL · CBR · RB · CDML · CDMR · CAM · LW · RW · ST 중 택1</li>
+        <li><span class="register-key">등번호</span>원하는 숫자 (중복 가능, 모금액 높은 분이 자리에 표시돼요)</li>
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -832,6 +841,32 @@ body::before {
 }
 
 .modal-footnote { margin: 16px 0 0; font-size: 11px; color: var(--ink-soft); text-align: center; }
+
+.register-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: rgba(205,164,74,0.08);
+  border: 1px solid rgba(205,164,74,0.3);
+  border-radius: var(--radius);
+}
+.register-title {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold-bright);
+  line-height: 1.5;
+}
+.register-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.register-list li { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+.register-key {
+  display: inline-block;
+  min-width: 42px;
+  margin-right: 8px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ink);
+}
 
 @media (prefers-reduced-motion: reduce) { .ring-fill { transition: none; } }
 
