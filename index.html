@@ -476,13 +476,14 @@ function renderRoster() {
     }
     const name = escapeHTML(p["이름"] || "익명");
     const number = escapeHTML(p["등번호"] || "");
+    const studentId = escapeHTML(p["학번"] || "");
     const photo = p["사진URL"];
     const avatarInner = photo
       ? `<img src="${photo.replace(/"/g, "&quot;")}" alt="${name}"><span class="slot-number-chip">${number}</span>`
       : `<span class="slot-number-plain">${number}</span>`;
     return `<div class="slot slot-filled" style="${style}">
       <div class="slot-circle">${avatarInner}</div>
-      <span class="slot-name">${number} ${name}</span>
+      <span class="slot-name">${studentId} ${name}</span>
     </div>`;
   }).join("");
 }
