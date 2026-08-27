@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBYB FESTIVAL · 펀딩 현황판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="notice" id="demoNotice" hidden>
+  <span>⚠ 구글시트 연동 전 예시 데이터로 표시 중입니다. 코드 상단 CONFIG의 CSV 링크를 채워주세요.</span>
+</div>
+
+<main class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">FOOTBALL CLUB · ISFC</p>
+    <h1 id="title">OBYB FESTIVAL</h1>
+    <p class="desc" id="desc"></p>
+  </header>
+
+  <section class="card amount-card">
+    <div class="amount-row">
+      <div class="amount-block">
+        <span class="label">모금액</span>
+        <span class="figure" id="raisedAmount">0</span>
+      </div>
+      <div class="amount-block target">
+        <span class="label">목표금액</span>
+        <span class="figure figure-target" id="targetAmount">0</span>
+      </div>
+    </div>
+
+    <div class="crest" aria-label="달성률 배지">
+      <div class="crest-stars" id="crestStars">★★★★★★★</div>
+      <svg class="crest-ring" viewBox="0 0 200 200">
+        <circle class="ring-bg" cx="100" cy="100" r="86"></circle>
+        <circle class="ring-fill" id="ringFill" cx="100" cy="100" r="86"></circle>
+      </svg>
+      <div class="crest-center">
+        <span class="crest-pct" id="ratePct">0%</span>
+        <span class="crest-label">DAL·SEONG·RYUL</span>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-num" id="participantCount">0</span>
+        <span class="stat-label">참여자</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="avgAmount">0</span>
+        <span class="stat-label">평균 참여 금액</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="remainAmount">0</span>
+        <span class="stat-label">남은 금액</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card roster-card">
+    <h2 class="roster-title">참가자 명단 <span class="roster-sub">SQUAD LIST</span></h2>
+    <div class="roster-list" id="rosterList">
+      <p class="empty-state">불러오는 중…</p>
+    </div>
+  </section>
+
+  <button class="cta" id="fundBtn">펀딩하기</button>
+
+  <p class="updated" id="updatedAt"></p>
+
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="닫기">×</button>
+    <p class="stub-eyebrow">MATCH TICKET · 입금 안내</p>
+    <h3 id="modalTitle">펀딩 참여 안내</h3>
+    <div class="stub-row">
+      <span class="stub-label">은행</span>
+      <span class="stub-value" id="bankName">-</span>
+    </div>
+    <div class="stub-row">
+      <span class="stub-label">계좌번호</span>
+      <span class="stub-value mono" id="bankAccount">-</span>
+      <button class="copy-btn" id="copyBtn">복사</button>
+    </div>
+    <div class="stub-row">
+      <span class="stub-label">예금주</span>
+      <span class="stub-value" id="bankHolder">-</span>
+    </div>
+    <a class="kakaopay-link" id="kakaopayLink" href="#" rel="noopener" hidden>카카오페이로 송금하기 →</a>
+    <p class="modal-footnote">입금해주신 내역은 참가자 명단에 순차 반영됩니다.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — 여기 두 줄만 채우면 대시보드가 자동으로 살아납니다.
+   구글시트 열기 → 파일 → 공유 → 웹에 게시 → 해당 탭 선택 →
+   형식은 반드시 "쉼표로 구분된 값(.csv)" 선택 → 링크 복사
+   ============================================================ */
+const CONFIG = {
+  SETTINGS_CSV_URL: "",     // "설정" 탭 웹에 게시 CSV 링크
+  PARTICIPANTS_CSV_URL: "", // "참여자" 탭 웹에 게시 CSV 링크
+  REFRESH_MS: 30000
+};
+
+/* 예시(데모) 데이터 — 실제 시트 연동 전까지 화면 구성 확인용 */
+const DEMO_SETTINGS = {
+  "제목": "ISFC 20주년 후원 펀딩",
+  "목표금액": "1000000",
+  "설명": "10월 31일 토요일 — 1부 풋살대회 & 2부 뒤풀이, 창단 20주년을 함께 축하해주세요.",
+  "은행명": "카카오뱅크",
+  "계좌번호": "3333-05-4093882",
+  "예금주": "유형선",
+  "카카오페이링크": ""
+};
+const DEMO_PARTICIPANTS = [
+  { "이름": "김OO", "금액": "50000" },
+  { "이름": "이OO", "금액": "30000" },
+  { "이름": "박OO", "금액": "100000" },
+  { "이름": "최OO", "금액": "20000" }
+];
+
+/* ---------------- CSV 파서 ---------------- */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ""; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); field = ""; rows.push(row); row = [];
+      } else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length === 1 && r[0].trim() === ""));
+}
+
+function csvToObjects(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 1) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h, idx) => obj[h] = (r[idx] ?? "").trim());
+    return obj;
+  });
+}
+
+function toNumber(str) {
+  const n = parseInt(String(str).replace(/[^0-9-]/g, ""), 10);
+  return isNaN(n) ? 0 : n;
+}
+
+/* ---------------- 데이터 로드 ---------------- */
+async function fetchCSV(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("fetch failed");
+  return await res.text();
+}
+
+async function loadData() {
+  let settings, participants, isDemo = false;
+
+  if (CONFIG.SETTINGS_CSV_URL && CONFIG.PARTICIPANTS_CSV_URL) {
+    try {
+      const [settingsText, participantsText] = await Promise.all([
+        fetchCSV(CONFIG.SETTINGS_CSV_URL),
+        fetchCSV(CONFIG.PARTICIPANTS_CSV_URL)
+      ]);
+      const settingsRows = csvToObjects(settingsText);
+      settings = {};
+      settingsRows.forEach(r => {
+        const key = r["key"] ?? r["항목"] ?? Object.values(r)[0];
+        const val = r["value"] ?? r["값"] ?? Object.values(r)[1];
+        if (key) settings[key.trim()] = (val ?? "").trim();
+      });
+      participants = csvToObjects(participantsText);
+    } catch (e) {
+      console.error("CSV 로드 실패, 예시 데이터로 대체합니다.", e);
+      settings = DEMO_SETTINGS;
+      participants = DEMO_PARTICIPANTS;
+      isDemo = true;
+    }
+  } else {
+    settings = DEMO_SETTINGS;
+    participants = DEMO_PARTICIPANTS;
+    isDemo = true;
+  }
+
+  render(settings, participants, isDemo);
+}
+
+/* ---------------- 렌더 ---------------- */
+function animateNumber(el, to) {
+  const from = toNumber(el.textContent.replace(/,/g, ""));
+  const duration = 700;
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + (to - from) * eased);
+    el.textContent = val.toLocaleString("ko-KR");
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+const RING_CIRCUMFERENCE = 2 * Math.PI * 86;
+
+function render(settings, participants, isDemo) {
+  document.getElementById("demoNotice").hidden = !isDemo;
+
+  document.getElementById("title").textContent = settings["제목"] || "OBYB FESTIVAL";
+  document.getElementById("desc").textContent = settings["설명"] || "";
+
+  const target = toNumber(settings["목표금액"]);
+  const raised = participants.reduce((sum, p) => sum + toNumber(p["금액"]), 0);
+  const count = participants.length;
+  const rate = target > 0 ? Math.min(100, Math.round((raised / target) * 1000) / 10) : 0;
+  const avg = count > 0 ? Math.round(raised / count) : 0;
+  const remain = Math.max(0, target - raised);
+
+  animateNumber(document.getElementById("raisedAmount"), raised);
+  animateNumber(document.getElementById("targetAmount"), target);
+  animateNumber(document.getElementById("avgAmount"), avg);
+  animateNumber(document.getElementById("remainAmount"), remain);
+  document.getElementById("participantCount").textContent = count.toLocaleString("ko-KR");
+
+  const ring = document.getElementById("ringFill");
+  ring.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+  ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - rate / 100));
+  document.getElementById("ratePct").textContent = rate + "%";
+
+  const litStars = Math.max(1, Math.round((rate / 100) * 7));
+  document.getElementById("crestStars").textContent = "★".repeat(litStars) + "☆".repeat(7 - litStars);
+
+  const list = document.getElementById("rosterList");
+  if (count === 0) {
+    list.innerHTML = '<p class="empty-state">아직 참가자가 없어요. 첫 참가자가 되어보세요.</p>';
+  } else {
+    list.innerHTML = participants
+      .map((p, i) => {
+        const name = p["이름"] || "익명";
+        const amt = toNumber(p["금액"]).toLocaleString("ko-KR");
+        const num = String(i + 1).padStart(2, "0");
+        return `<div class="roster-row"><span class="roster-num">${num}</span><span class="roster-name">${escapeHTML(name)}</span><span class="dots"></span><span class="roster-amt">${amt}원</span></div>`;
+      })
+      .join("");
+  }
+
+  document.getElementById("bankName").textContent = settings["은행명"] || "-";
+  document.getElementById("bankAccount").textContent = settings["계좌번호"] || "-";
+  document.getElementById("bankHolder").textContent = settings["예금주"] || "-";
+  const kakaopay = settings["카카오페이링크"];
+  const kakaopayEl = document.getElementById("kakaopayLink");
+  if (kakaopay) { kakaopayEl.href = kakaopay; kakaopayEl.hidden = false; } else { kakaopayEl.hidden = true; }
+
+  document.getElementById("updatedAt").textContent =
+    "마지막 업데이트 " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------------- 모달 ---------------- */
+const backdrop = document.getElementById("modalBackdrop");
+function openModal() { backdrop.classList.add("is-open"); }
+function closeModal() { backdrop.classList.remove("is-open"); }
+document.getElementById("fundBtn").addEventListener("click", openModal);
+document.getElementById("modalClose").addEventListener("click", closeModal);
+backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const text = document.getElementById("bankAccount").textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById("copyBtn");
+    const original = btn.textContent;
+    btn.textContent = "복사됨";
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  } catch (e) { /* clipboard unavailable */ }
+});
+
+/* ---------------- 시작 ---------------- */
+loadData();
+setInterval(loadData, CONFIG.REFRESH_MS);
+</script>
+
+<style>
+:root {
+  --bg: #131315;
+  --panel: #1b1b1e;
+  --panel-raised: #202023;
+  --ink: #f0eee9;
+  --ink-soft: #9a989c;
+  --line: rgba(240,238,233,0.12);
+  --maroon: #6e1c3a;
+  --maroon-bright: #8f2a4c;
+  --gold: #cda44a;
+  --gold-bright: #e6c15f;
+  --radius: 6px;
+  --font-display: 'Oswald', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Noto Sans KR', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(110,28,58,0.25), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(205,164,74,0.10), transparent 40%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  padding: 32px 16px 64px;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: overlay;
+}
+
+.notice {
+  max-width: 640px;
+  margin: 0 auto 20px;
+  background: rgba(205,164,74,0.12);
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  text-align: center;
+  position: relative;
+}
+
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: relative;
+}
+
+.masthead { text-align: center; padding: 12px 0 4px; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--gold);
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.masthead h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: clamp(34px, 8vw, 54px);
+  letter-spacing: 0.03em;
+  margin: 0 0 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #cfcfd2 45%, #8d8b90 55%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 2px 24px rgba(205,164,74,0.15);
+}
+
+.desc { color: var(--ink-soft); font-size: 14px; margin: 0; line-height: 1.6; max-width: 480px; margin-inline: auto; }
+
+.card {
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  position: relative;
+  box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6);
+}
+
+.amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.amount-block { display: flex; flex-direction: column; gap: 6px; }
+.amount-block.target { text-align: right; align-items: flex-end; }
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+}
+
+.figure {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(28px, 6.5vw, 40px);
+  color: var(--ink);
+}
+.figure::after { content: "원"; font-size: 0.4em; margin-left: 4px; color: var(--ink-soft); font-family: var(--font-body); font-weight: 400; }
+
+.figure-target { color: var(--ink-soft); font-size: clamp(18px, 4vw, 24px); }
+
+.crest {
+  position: relative;
+  width: 200px;
+  margin: 8px auto 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.crest-stars {
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 12px rgba(205,164,74,0.5);
+}
+
+.crest-ring { width: 200px; height: 200px; transform: rotate(-90deg); }
+
+.ring-bg {
+  fill: radial-gradient(circle, var(--maroon), #3d0f21);
+  fill: #3d0f21;
+  stroke: rgba(240,238,233,0.08);
+  stroke-width: 10;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: url(#none);
+  stroke: var(--gold);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 0 6px rgba(230,193,95,0.5));
+}
+
+.crest-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.crest-pct {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 34px;
+  color: var(--ink);
+}
+
+.crest-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-top: 6px;
+}
+
+.stat { text-align: center; display: flex; flex-direction: column; gap: 6px; }
+.stat:not(:last-child) { border-right: 1px solid var(--line); }
+
+.stat-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.stat-label { font-size: 11px; color: var(--ink-soft); }
+
+.roster-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.roster-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  font-weight: 400;
+}
+
+.roster-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+
+.roster-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.roster-num {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 12px;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.roster-name { flex-shrink: 0; font-weight: 500; }
+.dots { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-4px); }
+.roster-amt { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; color: var(--ink); }
+
+.empty-state { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 20px 0; }
+
+.cta {
+  display: block;
+  width: 100%;
+  padding: 19px;
+  background: linear-gradient(180deg, var(--maroon-bright), var(--maroon));
+  color: var(--ink);
+  border: 1px solid rgba(205,164,74,0.4);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 30px -10px rgba(110,28,58,0.6);
+}
+.cta:hover { box-shadow: 0 14px 34px -8px rgba(110,28,58,0.75); }
+.cta:active { transform: scale(0.99); }
+.cta:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.updated {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  margin: 0;
+}
+
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(6,6,7,0.75);
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.modal-backdrop.is-open { display: flex; }
+
+.modal {
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 380px;
+  width: 100%;
+  padding: 28px 24px;
+  position: relative;
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8);
+}
+
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none;
+  font-size: 22px; line-height: 1;
+  color: var(--ink-soft); cursor: pointer;
+}
+.modal-close:focus-visible { outline: 2px solid var(--gold); }
+
+.stub-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+  margin: 0 0 8px;
+}
+
+.modal h3 { font-family: var(--font-display); text-transform: uppercase; font-size: 20px; margin: 0 0 20px; color: var(--ink); }
+
+.stub-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 14px;
+}
+.stub-label { width: 70px; flex-shrink: 0; color: var(--ink-soft); font-size: 12px; }
+.stub-value { flex: 1; font-weight: 600; color: var(--ink); }
+.stub-value.mono { font-family: var(--font-mono); }
+
+.copy-btn {
+  background: rgba(205,164,74,0.12);
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.copy-btn:hover { background: var(--gold); color: #1b1b1e; }
+
+.kakaopay-link {
+  display: block;
+  margin-top: 16px;
+  text-align: center;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: #1b1b1e;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.modal-footnote {
+  margin: 16px 0 0;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-fill { transition: none; }
+}
+</style>
+</body>
+</html>
