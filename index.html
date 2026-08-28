@@ -147,8 +147,10 @@
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <button class="modal-close" id="modalClose" aria-label="닫기">×</button>
-    <p class="stub-eyebrow">MATCH TICKET · 입금 안내</p>
+    <p class="stub-eyebrow">MATCH TICKET · 참여 안내</p>
     <h3 id="modalTitle">펀딩 참여 안내</h3>
+
+    <p class="step-label">STEP 1 · 입금하기</p>
     <div class="stub-row">
       <span class="stub-label">은행</span>
       <span class="stub-value" id="bankName">-</span>
@@ -164,15 +166,15 @@
     </div>
     <a class="kakaopay-link" id="kakaopayLink" href="#" rel="noopener" hidden>카카오페이로 송금하기 →</a>
 
-    <div class="register-box">
-      <p class="register-title">선수단 등록을 원하시면 입금 후 아래 4가지를 함께 보내주세요</p>
-      <ul class="register-list">
-        <li><span class="register-key">이름</span>실명 (예: 유형선)</li>
-        <li><span class="register-key">학번</span>예: 14</li>
-        <li><span class="register-key">포지션</span>GK · LB · LCB · RCB · RB · CDM · LCM · RCM · LW · RW · ST 중 택1</li>
-        <li><span class="register-key">등번호</span>원하는 숫자 (중복 가능, 모금액 높은 분이 자리에 표시돼요)</li>
-      </ul>
+    <p class="step-label step-label-2">STEP 2 · 참여 신청서 작성하기</p>
+    <p class="step-desc">입금하신 <strong>입금자표시명</strong>과 <strong>금액</strong>이 정확히 일치해야 확인이 빨라요. 이름·학번·희망 포지션·희망 등번호도 함께 적어주세요.</p>
+
+    <a class="form-cta-link" id="formCtaLink" href="#" target="_blank" rel="noopener" hidden>📝 참여 신청서 작성하러 가기 →</a>
+    <div class="notice form-pending-notice" id="formPendingNotice" hidden>
+      <span>📋 신청서 링크가 아직 연결되지 않았어요. 코드 상단 CONFIG의 GOOGLE_FORM_URL을 채워주세요.</span>
     </div>
+
+    <p class="modal-footnote">제출하신 내용은 입금 내역과 대조 후 승인되면 자동으로 대시보드·선수단에 반영돼요.</p>
   </div>
 </div>
 
@@ -190,9 +192,10 @@
    ============================================================ */
 const CONFIG = {
   SETTINGS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=0&single=true&output=csv",
-  PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=1151352721&single=true&output=csv",
+  PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=427125560&single=true&output=csv",
   DRIVE_FOLDER_ID: "1L9UYxypkPGqf2heQcctX94ljnRKGP6wD",      // 사진첩용 구글드라이브 폴더 ID (링크가 있는 모든 사용자로 공유 필요)
   DRIVE_API_KEY: "AIzaSyAsb-JZC0gn2iDV3x6VGWOs_2MOkklQTq0",        // 구글 클라우드 콘솔에서 발급한 Drive API 키
+  GOOGLE_FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSc8s0l0VD52MDq9Mzaj57tTCIooKhHFtRrMXxW04Psh5ekh7Q/viewform?usp=dialog",      // 참여 신청서 구글폼 링크 (https://docs.google.com/forms/d/e/.../viewform)
   REFRESH_MS: 30000
 };
 
@@ -477,7 +480,19 @@ function renderPositionRankings(participants) {
 
 /* ---------------- 펀딩 모달 ---------------- */
 const backdrop = document.getElementById("modalBackdrop");
-function openModal() { backdrop.classList.add("is-open"); }
+function openModal() {
+  const formLink = document.getElementById("formCtaLink");
+  const formPending = document.getElementById("formPendingNotice");
+  if (CONFIG.GOOGLE_FORM_URL) {
+    formLink.href = CONFIG.GOOGLE_FORM_URL;
+    formLink.hidden = false;
+    formPending.hidden = true;
+  } else {
+    formLink.hidden = true;
+    formPending.hidden = false;
+  }
+  backdrop.classList.add("is-open");
+}
 function closeModal() { backdrop.classList.remove("is-open"); }
 document.getElementById("fundBtn").addEventListener("click", openModal);
 document.getElementById("modalClose").addEventListener("click", closeModal);
@@ -573,15 +588,39 @@ function normalizePositionCode(str) {
   return String(str || "").toUpperCase().replace(/[\s\-_]/g, "");
 }
 
+// 같은 사람(학번 우선, 없으면 이름)이 같은 포지션에 여러 번 낸 금액은 합산해서 하나로 취급
+function aggregateByPersonPosition(participants) {
+  const map = new Map();
+  participants.forEach(p => {
+    const slot = normalizePositionCode(p["포지션"]);
+    if (!FORMATION.slots[slot]) return;
+    const sid = (p["학번"] || "").trim();
+    const personKey = sid || ("NAME:" + (p["이름"] || "익명"));
+    const key = personKey + "||" + slot;
+    const amt = toNumber(p["금액"]);
+    const prev = map.get(key);
+    if (prev) {
+      prev["금액"] = String(toNumber(prev["금액"]) + amt);
+      // 최신 등번호·사진은 마지막 제출 기준으로 갱신
+      prev["등번호"] = p["등번호"] || prev["등번호"];
+      prev["사진URL"] = p["사진URL"] || prev["사진URL"];
+    } else {
+      map.set(key, { ...p, "포지션": slot });
+    }
+  });
+  return Array.from(map.values());
+}
+
 function renderRoster() {
   document.getElementById("slotLegend").textContent =
     "포지션 코드: " + Object.keys(FORMATION.slots).join(" · ");
 
-  // 슬롯별로 금액이 가장 큰 참가자만 채택
+  const aggregated = aggregateByPersonPosition(latestParticipants);
+
+  // 슬롯별로 합산 금액이 가장 큰 참가자만 채택
   const bySlot = {};
-  latestParticipants.forEach(p => {
-    const slot = normalizePositionCode(p["포지션"]);
-    if (!FORMATION.slots[slot]) return;
+  aggregated.forEach(p => {
+    const slot = p["포지션"];
     const amt = toNumber(p["금액"]);
     if (!bySlot[slot] || amt > toNumber(bySlot[slot]["금액"])) {
       bySlot[slot] = p;
@@ -645,8 +684,8 @@ function positionSlotPopover(slotEl) {
 }
 
 function showSlotPopover(slotEl, code) {
-  const candidates = latestParticipants
-    .filter(p => normalizePositionCode(p["포지션"]) === code)
+  const candidates = aggregateByPersonPosition(latestParticipants)
+    .filter(p => p["포지션"] === code)
     .sort((a, b) => toNumber(b["금액"]) - toNumber(a["금액"]))
     .slice(0, 3);
 
@@ -1102,31 +1141,30 @@ body::before {
 
 .modal-footnote { margin: 16px 0 0; font-size: 11px; color: var(--ink-soft); text-align: center; }
 
-.register-box {
-  margin-top: 18px;
-  padding: 14px 16px;
-  background: rgba(205,164,74,0.08);
-  border: 1px solid rgba(205,164,74,0.3);
-  border-radius: var(--radius);
-}
-.register-title {
+.step-label {
   margin: 0 0 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--gold-bright);
-  line-height: 1.5;
-}
-.register-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
-.register-list li { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
-.register-key {
-  display: inline-block;
-  min-width: 42px;
-  margin-right: 8px;
   font-family: var(--font-mono);
-  font-weight: 700;
   font-size: 11px;
-  color: var(--ink);
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  color: var(--gold);
 }
+.step-label-2 { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.step-desc { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.step-desc strong { color: var(--ink); font-weight: 600; }
+
+.form-cta-link {
+  display: block;
+  text-align: center;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: #1b1b1e;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.form-pending-notice { margin: 0; text-align: left; }
 
 @media (prefers-reduced-motion: reduce) { .ring-fill { transition: none; } }
 
