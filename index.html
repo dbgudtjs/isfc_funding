@@ -22,6 +22,7 @@
   <button class="tab-btn" data-tab="roster">쟁탈전</button>
   <button class="tab-btn" data-tab="ranking">랭킹</button>
   <button class="tab-btn" data-tab="history">연혁</button>
+  <button class="tab-btn" data-tab="presidents">회장단</button>
 </nav>
 
 <main class="wrap">
@@ -86,6 +87,17 @@
     </div>
     <h2 class="section-title">연혁 <span class="roster-sub">IS FC HISTORY</span></h2>
     <div class="timeline" id="historyTimeline">
+      <p class="empty-state">불러오는 중…</p>
+    </div>
+  </section>
+
+  <!-- ============ 탭 5. 회장단 ============ -->
+  <section class="tab-panel" id="tab-presidents">
+    <div class="notice" id="presidentsNotice" hidden>
+      <span>👤 회장단 시트가 아직 연결되지 않았어요. 코드 상단 CONFIG의 PRESIDENTS_CSV_URL을 채워주세요.</span>
+    </div>
+    <h2 class="section-title">회장단 <span class="roster-sub">PRESIDENTS</span></h2>
+    <div class="president-list" id="presidentList">
       <p class="empty-state">불러오는 중…</p>
     </div>
   </section>
@@ -184,6 +196,7 @@ const CONFIG = {
   PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=1151352721&single=true&output=csv",
   GOOGLE_FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSc8s0l0VD52MDq9Mzaj57tTCIooKhHFtRrMXxW04Psh5ekh7Q/viewform?usp=dialog",      // 참여 신청서 구글폼 링크 (https://docs.google.com/forms/d/e/.../viewform)
   HISTORY_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=558554992&single=true&output=csv",      // 연혁 탭 웹에 게시 CSV 링크 (연도,구분,내용)
+  PRESIDENTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=1712243608&single=true&output=csv",      // 회장단 탭 웹에 게시 CSV 링크 (연도,대,이름)
   REFRESH_MS: 30000
 };
 
@@ -208,6 +221,10 @@ const DEMO_HISTORY = [
   { "연도": "2012", "구분": "우승", "내용": "OO리그 우승" },
   { "연도": "2018", "구분": "준우승", "내용": "OO대회 준우승" },
   { "연도": "2026", "구분": "20주년", "내용": "창단 20주년" }
+];
+const DEMO_PRESIDENTS = [
+  { "연도": "2006", "대": "1대", "이름": "문승환" },
+  { "연도": "2016", "대": "12대", "이름": "윤철호" }
 ];
 
 /* ---------------- CSV 파서 ---------------- */
@@ -564,6 +581,56 @@ function renderHistory(history) {
   }).join("");
 }
 
+/* ============================================================
+   회장단 (Presidents)
+   ============================================================ */
+async function loadPresidents() {
+  const list = document.getElementById("presidentList");
+  const notice = document.getElementById("presidentsNotice");
+  notice.hidden = true;
+
+  let presidents;
+  if (CONFIG.PRESIDENTS_CSV_URL) {
+    try {
+      const text = await fetchCSV(CONFIG.PRESIDENTS_CSV_URL);
+      presidents = csvToObjects(text);
+    } catch (e) {
+      console.error("회장단 로드 실패, 예시 데이터로 대체합니다.", e);
+      presidents = DEMO_PRESIDENTS;
+    }
+  } else {
+    notice.hidden = false;
+    presidents = DEMO_PRESIDENTS;
+  }
+
+  renderPresidents(presidents);
+}
+
+function renderPresidents(presidents) {
+  const list = document.getElementById("presidentList");
+  const sorted = presidents
+    .filter(p => p["대"])
+    .slice()
+    .sort((a, b) => toNumber(a["대"]) - toNumber(b["대"]));
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<p class="empty-state">아직 등록된 회장단 정보가 없어요.</p>';
+    return;
+  }
+
+  list.innerHTML = sorted.map(p => {
+    const gen = escapeHTML(p["대"] || "");
+    const name = escapeHTML(p["이름"] || "");
+    const year = escapeHTML(p["연도"] || "");
+    return `<div class="president-row">
+      <span class="president-gen">${gen}</span>
+      <span class="president-name">${name}</span>
+      <span class="dots"></span>
+      <span class="president-year">${year}</span>
+    </div>`;
+  }).join("");
+}
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { closeModal(); closeSlotPopover(); }
 });
@@ -731,6 +798,7 @@ window.addEventListener("resize", () => {
 /* ---------------- 시작 ---------------- */
 loadMainData();
 loadHistory();
+loadPresidents();
 renderRoster();
 setInterval(loadMainData, CONFIG.REFRESH_MS);
 </script>
@@ -830,10 +898,10 @@ body::before {
   color: var(--ink-soft);
   font-family: var(--font-display);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 14px;
+  letter-spacing: 0.03em;
+  font-size: 12px;
   font-weight: 600;
-  padding: 12px 8px;
+  padding: 12px 4px;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -1035,6 +1103,13 @@ body::before {
   margin-bottom: 4px;
 }
 .timeline-content { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+
+/* ---------------- 회장단 ---------------- */
+.president-list { display: flex; flex-direction: column; gap: 4px; }
+.president-row { display: flex; align-items: baseline; gap: 12px; font-size: 14px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.president-gen { font-family: var(--font-mono); color: var(--gold); font-weight: 700; font-size: 12px; width: 40px; flex-shrink: 0; }
+.president-name { flex-shrink: 0; font-weight: 500; }
+.president-year { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; color: var(--ink-soft); font-size: 12px; }
 
 /* ---------------- 선수단 / 포메이션 ---------------- */
 .roster-help { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: -10px 0 0; }
