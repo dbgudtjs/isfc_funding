@@ -21,7 +21,7 @@
   <button class="tab-btn is-active" data-tab="main">메인</button>
   <button class="tab-btn" data-tab="roster">쟁탈전</button>
   <button class="tab-btn" data-tab="ranking">랭킹</button>
-  <button class="tab-btn" data-tab="gallery">사진첩</button>
+  <button class="tab-btn" data-tab="history">연혁</button>
 </nav>
 
 <main class="wrap">
@@ -79,16 +79,13 @@
     <p class="updated" id="updatedAt"></p>
   </section>
 
-  <!-- ============ 탭 4. 사진첩 ============ -->
-  <section class="tab-panel" id="tab-gallery">
-    <div class="notice" id="galleryNotice" hidden>
-      <span>📁 구글드라이브 폴더가 아직 연결되지 않았어요. 코드 상단 CONFIG의 DRIVE_FOLDER_ID / DRIVE_API_KEY를 채워주세요.</span>
+  <!-- ============ 탭 4. 연혁 ============ -->
+  <section class="tab-panel" id="tab-history">
+    <div class="notice" id="historyNotice" hidden>
+      <span>📜 연혁 시트가 아직 연결되지 않았어요. 코드 상단 CONFIG의 HISTORY_CSV_URL을 채워주세요.</span>
     </div>
-    <div class="notice notice-error" id="galleryError" hidden>
-      <span>사진을 불러오지 못했어요. 폴더 공유 설정이 "링크가 있는 모든 사용자"로 되어 있는지, API 키가 유효한지 확인해주세요.</span>
-    </div>
-    <h2 class="section-title">사진첩 <span class="roster-sub">IS FC ARCHIVE</span></h2>
-    <div class="gallery-grid" id="galleryGrid">
+    <h2 class="section-title">연혁 <span class="roster-sub">IS FC HISTORY</span></h2>
+    <div class="timeline" id="historyTimeline">
       <p class="empty-state">불러오는 중…</p>
     </div>
   </section>
@@ -178,14 +175,6 @@
   </div>
 </div>
 
-<!-- ============ 사진 라이트박스 ============ -->
-<div class="modal-backdrop" id="lightboxBackdrop">
-  <div class="lightbox">
-    <button class="modal-close" id="lightboxClose" aria-label="닫기">×</button>
-    <img id="lightboxImg" src="" alt="">
-  </div>
-</div>
-
 <script>
 /* ============================================================
    CONFIG
@@ -193,9 +182,8 @@
 const CONFIG = {
   SETTINGS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXBh9Rp50LplENRho3H971aVpYkxOY6psZIlfOFdXOkzL1R20ZnFBljtfWJDtTVviapi2HTudueEsm/pub?gid=0&single=true&output=csv",
   PARTICIPANTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=1151352721&single=true&output=csv",
-  DRIVE_FOLDER_ID: "1L9UYxypkPGqf2heQcctX94ljnRKGP6wD",      // 사진첩용 구글드라이브 폴더 ID (링크가 있는 모든 사용자로 공유 필요)
-  DRIVE_API_KEY: "AIzaSyAsb-JZC0gn2iDV3x6VGWOs_2MOkklQTq0",        // 구글 클라우드 콘솔에서 발급한 Drive API 키
   GOOGLE_FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSc8s0l0VD52MDq9Mzaj57tTCIooKhHFtRrMXxW04Psh5ekh7Q/viewform?usp=dialog",      // 참여 신청서 구글폼 링크 (https://docs.google.com/forms/d/e/.../viewform)
+  HISTORY_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=558554992&single=true&output=csv",      // 연혁 탭 웹에 게시 CSV 링크 (연도,구분,내용)
   REFRESH_MS: 30000
 };
 
@@ -203,7 +191,7 @@ const CONFIG = {
 const DEMO_SETTINGS = {
   "제목": "ISFC 20주년 후원 펀딩",
   "목표금액": "1000000",
-  "설명": "10월 31일 토요일 — 1부 풋살대회 & 2부 뒤풀이, 창단 20주년을 함께 축하해주세요.",
+  "설명": "10월 31일 토요일 - 1부 풋살대회 & 2부 뒤풀이, 창단 20주년을 함께 축하해주세요.",
   "은행명": "",
   "계좌번호": "",
   "예금주": "",
@@ -214,6 +202,12 @@ const DEMO_PARTICIPANTS = [
   { "이름": "이OO", "금액": "30000", "학번": "20", "포지션": "GK", "등번호": "1", "사진URL": "" },
   { "이름": "박OO", "금액": "100000", "학번": "18", "포지션": "CDM", "등번호": "10", "사진URL": "" },
   { "이름": "최OO", "금액": "20000", "학번": "21", "포지션": "LW", "등번호": "7", "사진URL": "" }
+];
+const DEMO_HISTORY = [
+  { "연도": "2006", "구분": "창단", "내용": "IS FC 창단" },
+  { "연도": "2012", "구분": "우승", "내용": "OO리그 우승" },
+  { "연도": "2018", "구분": "준우승", "내용": "OO대회 준우승" },
+  { "연도": "2026", "구분": "20주년", "내용": "창단 20주년" }
 ];
 
 /* ---------------- CSV 파서 ---------------- */
@@ -510,64 +504,68 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
 });
 
 /* ============================================================
-   사진첩 (구글드라이브)
+   연혁 (History)
    ============================================================ */
-async function loadGallery() {
-  const grid = document.getElementById("galleryGrid");
-  const notice = document.getElementById("galleryNotice");
-  const errorBox = document.getElementById("galleryError");
+async function loadHistory() {
+  const timeline = document.getElementById("historyTimeline");
+  const notice = document.getElementById("historyNotice");
   notice.hidden = true;
-  errorBox.hidden = true;
 
-  if (!CONFIG.DRIVE_FOLDER_ID || !CONFIG.DRIVE_API_KEY) {
+  let history;
+  if (CONFIG.HISTORY_CSV_URL) {
+    try {
+      const text = await fetchCSV(CONFIG.HISTORY_CSV_URL);
+      history = csvToObjects(text);
+    } catch (e) {
+      console.error("연혁 로드 실패, 예시 데이터로 대체합니다.", e);
+      history = DEMO_HISTORY;
+    }
+  } else {
     notice.hidden = false;
-    grid.innerHTML = '<p class="empty-state">폴더 연결 후 이곳에 사진이 자동으로 표시됩니다.</p>';
+    history = DEMO_HISTORY;
+  }
+
+  renderHistory(history);
+}
+
+function historyIcon(category) {
+  const c = (category || "").trim();
+  if (c.includes("우승") && !c.includes("준우승")) return "🏆";
+  if (c.includes("준우승")) return "🥈";
+  if (c.includes("창단") || c.includes("주년")) return "🎉";
+  return "";
+}
+
+function renderHistory(history) {
+  const timeline = document.getElementById("historyTimeline");
+  const sorted = history
+    .filter(h => h["연도"])
+    .slice()
+    .sort((a, b) => toNumber(a["연도"]) - toNumber(b["연도"]));
+
+  if (sorted.length === 0) {
+    timeline.innerHTML = '<p class="empty-state">아직 등록된 연혁이 없어요.</p>';
     return;
   }
 
-  try {
-    const q = `'${CONFIG.DRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent("files(id,name)")}&orderBy=createdTime desc&pageSize=100&key=${CONFIG.DRIVE_API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("drive fetch failed");
-    const data = await res.json();
-    const files = data.files || [];
-
-    if (files.length === 0) {
-      grid.innerHTML = '<p class="empty-state">폴더에 사진이 아직 없어요.</p>';
-      return;
-    }
-
-    grid.innerHTML = files.map(f => {
-      const thumb = `https://drive.google.com/thumbnail?id=${f.id}&sz=w500`;
-      const full = `https://drive.google.com/thumbnail?id=${f.id}&sz=w1600`;
-      return `<button class="gallery-item" data-full="${full}" aria-label="${escapeHTML(f.name)}"><img src="${thumb}" alt="${escapeHTML(f.name)}" loading="lazy"></button>`;
-    }).join("");
-
-    grid.querySelectorAll(".gallery-item").forEach(item => {
-      item.addEventListener("click", () => openLightbox(item.dataset.full));
-    });
-  } catch (e) {
-    console.error("사진첩 로드 실패", e);
-    errorBox.hidden = false;
-    grid.innerHTML = "";
-  }
+  timeline.innerHTML = sorted.map(h => {
+    const year = escapeHTML(h["연도"] || "");
+    const category = escapeHTML(h["구분"] || "");
+    const content = escapeHTML(h["내용"] || "");
+    const icon = historyIcon(h["구분"]);
+    return `<div class="timeline-item">
+      <div class="timeline-year">${year}</div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-body">
+        ${category ? `<span class="timeline-tag">${icon ? icon + " " : ""}${category}</span>` : ""}
+        <p class="timeline-content">${content}</p>
+      </div>
+    </div>`;
+  }).join("");
 }
-
-const lightboxBackdrop = document.getElementById("lightboxBackdrop");
-function openLightbox(src) {
-  document.getElementById("lightboxImg").src = src;
-  lightboxBackdrop.classList.add("is-open");
-}
-function closeLightbox() {
-  lightboxBackdrop.classList.remove("is-open");
-  document.getElementById("lightboxImg").src = "";
-}
-document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
-lightboxBackdrop.addEventListener("click", (e) => { if (e.target === lightboxBackdrop) closeLightbox(); });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { closeModal(); closeLightbox(); closeSlotPopover(); }
+  if (e.key === "Escape") { closeModal(); closeSlotPopover(); }
 });
 
 /* ============================================================
@@ -732,7 +730,7 @@ window.addEventListener("resize", () => {
 
 /* ---------------- 시작 ---------------- */
 loadMainData();
-loadGallery();
+loadHistory();
 renderRoster();
 setInterval(loadMainData, CONFIG.REFRESH_MS);
 </script>
@@ -976,29 +974,67 @@ body::before {
 
 .updated { text-align: center; font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); margin: 0; }
 
-/* ---------------- 사진첩 ---------------- */
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.gallery-item {
+/* ---------------- 연혁 (타임라인) ---------------- */
+.timeline {
   position: relative;
-  aspect-ratio: 1;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  overflow: hidden;
-  padding: 0;
-  background: var(--panel);
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-left: 8px;
 }
-.gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
-.gallery-item:hover img { transform: scale(1.06); }
-.gallery-item:focus-visible { outline: 2px solid var(--gold); }
-
-.lightbox { max-width: 90vw; max-height: 85vh; position: relative; }
-.lightbox img { max-width: 90vw; max-height: 85vh; display: block; border-radius: var(--radius); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8); }
-.lightbox .modal-close { top: -36px; right: 0; color: var(--ink); }
+.timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px 20px 1fr;
+  align-items: start;
+  column-gap: 4px;
+}
+.timeline-year {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gold-bright);
+  text-align: right;
+  padding-top: 2px;
+}
+.timeline-dot {
+  position: relative;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+}
+.timeline-dot::before {
+  content: "";
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(205,164,74,0.6);
+  margin-top: 5px;
+  position: relative;
+  z-index: 1;
+}
+.timeline-dot::after {
+  content: "";
+  position: absolute;
+  top: 16px; bottom: -22px;
+  width: 1px;
+  background: var(--line);
+}
+.timeline-item:last-child .timeline-dot::after { display: none; }
+.timeline-body { padding-bottom: 2px; }
+.timeline-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  background: rgba(205,164,74,0.12);
+  border: 1px solid rgba(205,164,74,0.35);
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-bottom: 4px;
+}
+.timeline-content { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.5; }
 
 /* ---------------- 선수단 / 포메이션 ---------------- */
 .roster-help { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: -10px 0 0; }
@@ -1169,7 +1205,6 @@ body::before {
 @media (prefers-reduced-motion: reduce) { .ring-fill { transition: none; } }
 
 @media (max-width: 420px) {
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
   .slot-circle { width: 28px; height: 28px; }
   .slot-name { font-size: 8.5px; }
 }
