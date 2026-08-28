@@ -625,9 +625,8 @@ function renderPresidents(presidents) {
     const sidLabel = sid ? `${sid}학번` : "";
     return `<div class="president-row">
       <span class="president-gen">${gen}</span>
+      <span class="president-sid">${sidLabel}</span>
       <span class="president-name">${name}</span>
-      <span class="dots"></span>
-      <span class="president-year">${sidLabel}</span>
     </div>`;
   }).join("");
 }
@@ -1107,10 +1106,10 @@ body::before {
 
 /* ---------------- 회장단 ---------------- */
 .president-list { display: flex; flex-direction: column; gap: 4px; }
-.president-row { display: flex; align-items: baseline; gap: 12px; font-size: 14px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.president-row { display: flex; align-items: baseline; gap: 10px; font-size: 14px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
 .president-gen { font-family: var(--font-mono); color: var(--gold); font-weight: 700; font-size: 12px; width: 40px; flex-shrink: 0; }
+.president-sid { font-family: var(--font-mono); color: var(--ink-soft); font-size: 11px; flex-shrink: 0; }
 .president-name { flex-shrink: 0; font-weight: 500; }
-.president-year { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; color: var(--ink-soft); font-size: 12px; }
 
 /* ---------------- 선수단 / 포메이션 ---------------- */
 .roster-help { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: -10px 0 0; }
