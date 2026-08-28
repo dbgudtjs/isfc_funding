@@ -152,6 +152,21 @@
 
 </main>
 
+<section class="gallery-footer">
+  <div class="gallery-footer-inner">
+    <p class="gallery-footer-title">사진첩 <span class="roster-sub">IS FC ARCHIVE</span></p>
+    <div class="notice gallery-notice" id="galleryNotice" hidden>
+      <span>📁 구글드라이브 폴더가 아직 연결되지 않았어요. 코드 상단 CONFIG의 DRIVE_FOLDER_ID / DRIVE_API_KEY를 채워주세요.</span>
+    </div>
+    <div class="notice notice-error gallery-notice" id="galleryError" hidden>
+      <span>사진을 불러오지 못했어요. 폴더 공유 설정이 "링크가 있는 모든 사용자"로 되어 있는지, API 키가 유효한지 확인해주세요.</span>
+    </div>
+    <div class="gallery-strip" id="galleryStrip">
+      <p class="empty-state">불러오는 중…</p>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 펀딩 모달 ============ -->
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -197,6 +212,8 @@ const CONFIG = {
   GOOGLE_FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSc8s0l0VD52MDq9Mzaj57tTCIooKhHFtRrMXxW04Psh5ekh7Q/viewform?usp=dialog",      // 참여 신청서 구글폼 링크 (https://docs.google.com/forms/d/e/.../viewform)
   HISTORY_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=558554992&single=true&output=csv",      // 연혁 탭 웹에 게시 CSV 링크 (연도,구분,내용)
   PRESIDENTS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSvk1i8iXp3yw699TI-if6AfrcCwdIFmLW0acPLlLTJIBg7EvN-hLfte07JDjsjrt0UOdbayIqdNtbH/pub?gid=1712243608&single=true&output=csv",      // 회장단 탭 웹에 게시 CSV 링크 (학번,대,이름)
+  DRIVE_FOLDER_ID: "1L9UYxypkPGqf2heQcctX94ljnRKGP6wD",      // 사진첩용 구글드라이브 폴더 ID (링크가 있는 모든 사용자로 공유 필요)
+  DRIVE_API_KEY: "AIzaSyAsb-JZC0gn2iDV3x6VGWOs_2MOkklQTq0",        // 구글 클라우드 콘솔에서 발급한 Drive API 키
   REFRESH_MS: 30000
 };
 
@@ -795,10 +812,52 @@ window.addEventListener("resize", () => {
   if (openSlotEl) positionSlotPopover(openSlotEl);
 });
 
+/* ============================================================
+   사진첩 (구글드라이브 필름스트립, 전 탭 공통 하단)
+   ============================================================ */
+async function loadGallery() {
+  const strip = document.getElementById("galleryStrip");
+  const notice = document.getElementById("galleryNotice");
+  const errorBox = document.getElementById("galleryError");
+  notice.hidden = true;
+  errorBox.hidden = true;
+
+  if (!CONFIG.DRIVE_FOLDER_ID || !CONFIG.DRIVE_API_KEY) {
+    notice.hidden = false;
+    strip.innerHTML = '<p class="empty-state">폴더 연결 후 이곳에 사진이 자동으로 표시됩니다.</p>';
+    return;
+  }
+
+  try {
+    const q = `'${CONFIG.DRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent("files(id,name)")}&orderBy=createdTime desc&pageSize=100&key=${CONFIG.DRIVE_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("drive fetch failed");
+    const data = await res.json();
+    const files = data.files || [];
+
+    if (files.length === 0) {
+      strip.innerHTML = '<p class="empty-state">폴더에 사진이 아직 없어요.</p>';
+      return;
+    }
+
+    strip.innerHTML = files.map(f => {
+      const thumb = `https://drive.google.com/thumbnail?id=${f.id}&sz=w500`;
+      const full = `https://drive.google.com/thumbnail?id=${f.id}&sz=w1600`;
+      return `<a class="gallery-thumb" href="${full}" target="_blank" rel="noopener" aria-label="${escapeHTML(f.name)}"><img src="${thumb}" alt="${escapeHTML(f.name)}" loading="lazy"></a>`;
+    }).join("");
+  } catch (e) {
+    console.error("사진첩 로드 실패", e);
+    errorBox.hidden = false;
+    strip.innerHTML = "";
+  }
+}
+
 /* ---------------- 시작 ---------------- */
 loadMainData();
 loadHistory();
 loadPresidents();
+loadGallery();
 renderRoster();
 setInterval(loadMainData, CONFIG.REFRESH_MS);
 </script>
