@@ -161,7 +161,7 @@
     <div class="notice notice-error gallery-notice" id="galleryError" hidden>
       <span>사진을 불러오지 못했어요. 폴더 공유 설정이 "링크가 있는 모든 사용자"로 되어 있는지, API 키가 유효한지 확인해주세요.</span>
     </div>
-    <div class="gallery-strip" id="galleryStrip">
+    <div class="gallery-grid" id="galleryGrid">
       <p class="empty-state">불러오는 중…</p>
     </div>
   </div>
@@ -199,6 +199,14 @@
     </div>
 
     <p class="modal-footnote">제출하신 내용은 입금 내역과 대조 후 승인되면 자동으로 대시보드·선수단에 반영돼요.</p>
+  </div>
+</div>
+
+<!-- ============ 사진 라이트박스 ============ -->
+<div class="modal-backdrop" id="lightboxBackdrop">
+  <div class="lightbox">
+    <button class="modal-close" id="lightboxClose" aria-label="닫기">×</button>
+    <img id="lightboxImg" src="" alt="">
   </div>
 </div>
 
@@ -649,7 +657,7 @@ function renderPresidents(presidents) {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { closeModal(); closeSlotPopover(); }
+  if (e.key === "Escape") { closeModal(); closeLightbox(); closeSlotPopover(); }
 });
 
 /* ============================================================
@@ -816,7 +824,7 @@ window.addEventListener("resize", () => {
    사진첩 (구글드라이브 필름스트립, 전 탭 공통 하단)
    ============================================================ */
 async function loadGallery() {
-  const strip = document.getElementById("galleryStrip");
+  const grid = document.getElementById("galleryGrid");
   const notice = document.getElementById("galleryNotice");
   const errorBox = document.getElementById("galleryError");
   notice.hidden = true;
@@ -824,7 +832,7 @@ async function loadGallery() {
 
   if (!CONFIG.DRIVE_FOLDER_ID || !CONFIG.DRIVE_API_KEY) {
     notice.hidden = false;
-    strip.innerHTML = '<p class="empty-state">폴더 연결 후 이곳에 사진이 자동으로 표시됩니다.</p>';
+    grid.innerHTML = '<p class="empty-state">폴더 연결 후 이곳에 사진이 자동으로 표시됩니다.</p>';
     return;
   }
 
@@ -837,21 +845,37 @@ async function loadGallery() {
     const files = data.files || [];
 
     if (files.length === 0) {
-      strip.innerHTML = '<p class="empty-state">폴더에 사진이 아직 없어요.</p>';
+      grid.innerHTML = '<p class="empty-state">폴더에 사진이 아직 없어요.</p>';
       return;
     }
 
-    strip.innerHTML = files.map(f => {
+    grid.innerHTML = files.map(f => {
       const thumb = `https://drive.google.com/thumbnail?id=${f.id}&sz=w500`;
       const full = `https://drive.google.com/thumbnail?id=${f.id}&sz=w1600`;
-      return `<a class="gallery-thumb" href="${full}" target="_blank" rel="noopener" aria-label="${escapeHTML(f.name)}"><img src="${thumb}" alt="${escapeHTML(f.name)}" loading="lazy"></a>`;
+      return `<button class="gallery-item" data-full="${full}" aria-label="${escapeHTML(f.name)}"><img src="${thumb}" alt="${escapeHTML(f.name)}" loading="lazy"></button>`;
     }).join("");
+
+    grid.querySelectorAll(".gallery-item").forEach(item => {
+      item.addEventListener("click", () => openLightbox(item.dataset.full));
+    });
   } catch (e) {
     console.error("사진첩 로드 실패", e);
     errorBox.hidden = false;
-    strip.innerHTML = "";
+    grid.innerHTML = "";
   }
 }
+
+const lightboxBackdrop = document.getElementById("lightboxBackdrop");
+function openLightbox(src) {
+  document.getElementById("lightboxImg").src = src;
+  lightboxBackdrop.classList.add("is-open");
+}
+function closeLightbox() {
+  lightboxBackdrop.classList.remove("is-open");
+  document.getElementById("lightboxImg").src = "";
+}
+document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+lightboxBackdrop.addEventListener("click", (e) => { if (e.target === lightboxBackdrop) closeLightbox(); });
 
 /* ---------------- 시작 ---------------- */
 loadMainData();
@@ -970,6 +994,45 @@ body::before {
 .tab-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 
 .wrap { max-width: 640px; margin: 0 auto; position: relative; }
+
+/* ---------------- 사진첩 (하단 필름스트립) ---------------- */
+.gallery-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 40px;
+  padding: 28px 16px 8px;
+}
+.gallery-footer-inner { max-width: 640px; margin: 0 auto; }
+.gallery-footer-title {
+  font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: 16px; font-weight: 600; margin: 0 0 14px;
+  display: flex; align-items: baseline; gap: 10px; color: var(--ink);
+}
+.gallery-notice { margin-bottom: 14px; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.gallery-item {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--panel);
+  cursor: pointer;
+  width: 100%;
+}
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+.gallery-item:hover img { transform: scale(1.08); }
+.gallery-item:focus-visible { outline: 2px solid var(--gold); }
+.gallery-grid .empty-state { grid-column: 1 / -1; padding: 12px 0; }
+
+.lightbox { max-width: 90vw; max-height: 85vh; position: relative; }
+.lightbox img { max-width: 90vw; max-height: 85vh; display: block; border-radius: var(--radius); box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8); }
+.lightbox .modal-close { top: -36px; right: 0; color: var(--ink); }
+
 
 .tab-panel { display: none; flex-direction: column; gap: 22px; padding-top: 24px; }
 .tab-panel.is-active { display: flex; }
