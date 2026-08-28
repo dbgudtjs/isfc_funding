@@ -119,7 +119,7 @@
     <h2 class="section-title">랭킹 <span class="roster-sub">LEADERBOARDS</span></h2>
 
     <section class="card ranking-card">
-      <h2 class="roster-title">개별 랭킹 <span class="roster-sub">SINGLE MAX TOP 5</span></h2>
+      <h2 class="roster-title">개별 펀딩 랭킹 <span class="roster-sub">SINGLE MAX TOP 5</span></h2>
       <div id="goatSpotlight"></div>
       <div class="ranking-list" id="singleRankingList">
         <p class="empty-state">불러오는 중…</p>
@@ -127,7 +127,7 @@
     </section>
 
     <section class="card ranking-card">
-      <h2 class="roster-title">학번 랭킹 <span class="roster-sub">CLASS TOTAL TOP 5</span></h2>
+      <h2 class="roster-title">고트 학번 랭킹 <span class="roster-sub">CLASS TOTAL TOP 5</span></h2>
       <div id="cumGoatSpotlight"></div>
       <div class="ranking-list" id="cumulativeRankingList">
         <p class="empty-state">불러오는 중…</p>
@@ -135,7 +135,7 @@
     </section>
 
     <section class="card ranking-card">
-      <h2 class="roster-title">포지션 랭킹 <span class="roster-sub">ROLE TOTAL</span></h2>
+      <h2 class="roster-title">고트 포지션 랭킹 <span class="roster-sub">ROLE TOTAL</span></h2>
       <div id="posGoatSpotlight"></div>
       <div class="ranking-list" id="positionRankGrid"></div>
     </section>
@@ -373,13 +373,6 @@ function renderMain(settings, participants, isDemo) {
 }
 
 /* ---------------- 랭킹 (최고 펀딩 / 누적 펀딩) ---------------- */
-function avatarInnerFor(p) {
-  const photo = p["사진URL"];
-  const name = escapeHTML(p["이름"] || "익명");
-  if (photo) return `<img src="${photo.replace(/"/g, "&quot;")}" alt="${name}">`;
-  return `<span class="rank-avatar-initial">${escapeHTML((p["이름"] || "?").trim().slice(0, 1))}</span>`;
-}
-
 function renderRankings(participants) {
   // 최고 펀딩 랭킹: 개별 입금 건 중 금액이 큰 순서, TOP 5
   const singleSorted = participants.slice().sort((a, b) => toNumber(b["금액"]) - toNumber(a["금액"]));
@@ -392,20 +385,17 @@ function renderRankings(participants) {
   } else {
     const goat = singleSorted[0];
     goatBox.innerHTML = `
-      <div class="goat-card">
+      <div class="goat-card goat-card-sid">
         <span class="goat-tag">🐐 GOAT</span>
-        <div class="goat-avatar">${avatarInnerFor(goat)}</div>
-        <div class="goat-info">
-          <span class="goat-name">${escapeHTML(goat["이름"] || "익명")}</span>
-          <span class="goat-amt">${toNumber(goat["금액"]).toLocaleString("ko-KR")}원</span>
+        <div class="goat-info goat-info-sid">
+          <span class="goat-amt goat-amt-solo">${toNumber(goat["금액"]).toLocaleString("ko-KR")}원</span>
         </div>
       </div>`;
 
     singleList.innerHTML = singleSorted.slice(1, 5).map((p, i) => {
       const rank = i + 2;
-      const name = escapeHTML(p["이름"] || "익명");
       const amt = toNumber(p["금액"]).toLocaleString("ko-KR");
-      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${name}</span><span class="dots"></span><span class="rank-amt">${amt}원</span></div>`;
+      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="dots"></span><span class="rank-amt">${amt}원</span></div>`;
     }).join("");
   }
 
@@ -434,7 +424,7 @@ function renderRankings(participants) {
     const cumGoatLabel = cumGoat.sid === "미기재" ? "학번 미기재" : `${escapeHTML(cumGoat.sid)}학번`;
     cumGoatBox.innerHTML = `
       <div class="goat-card goat-card-sid">
-        <span class="goat-tag">👑 GOAT 학번</span>
+        <span class="goat-tag">👑 GOAT</span>
         <div class="goat-info goat-info-sid">
           <span class="goat-name goat-sid-name">${cumGoatLabel}</span>
           <span class="goat-amt">${cumGoat.total.toLocaleString("ko-KR")}원</span>
@@ -472,7 +462,7 @@ function renderPositionRankings(participants) {
   const topGroup = totals[0];
   posGoatBox.innerHTML = `
     <div class="goat-card goat-card-sid">
-      <span class="goat-tag">🎽 GOAT 포지션</span>
+      <span class="goat-tag">🎽 GOAT</span>
       <div class="goat-info goat-info-sid">
         <span class="goat-name goat-sid-name">${topGroup.label}</span>
         <span class="goat-amt">${topGroup.total.toLocaleString("ko-KR")}원</span>
@@ -663,8 +653,7 @@ function showSlotPopover(slotEl, code) {
   const rows = candidates.length
     ? candidates.map((p, i) => {
         const name = escapeHTML(p["이름"] || "익명");
-        const amt = toNumber(p["금액"]).toLocaleString("ko-KR");
-        return `<div class="popover-row"><span class="popover-rank">${i + 1}</span><span class="popover-name">${name}</span><span class="popover-amt">${amt}원</span></div>`;
+        return `<div class="popover-row"><span class="popover-rank">${i + 1}</span><span class="popover-name">${name}</span></div>`;
       }).join("")
     : `<p class="popover-empty">아직 도전자가 없어요</p>`;
 
@@ -920,16 +909,6 @@ body::before {
   letter-spacing: 0.05em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
-.goat-avatar {
-  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
-  border: 2px solid var(--gold);
-  background: var(--maroon);
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 0 14px rgba(205,164,74,0.5);
-}
-.goat-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.rank-avatar-initial { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--ink); }
 .goat-info { display: flex; flex-direction: column; gap: 3px; }
 .goat-name { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--ink); }
 .goat-amt { font-family: var(--font-mono); font-weight: 700; font-size: 15px; color: var(--gold-bright); }
@@ -937,6 +916,7 @@ body::before {
 .goat-card-sid { justify-content: center; text-align: center; }
 .goat-info-sid { align-items: center; }
 .goat-sid-name { font-size: 26px; letter-spacing: 0.02em; }
+.goat-amt-solo { font-size: 22px; }
 
 .empty-state { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 20px 0; grid-column: 1 / -1; }
 
@@ -1017,7 +997,6 @@ body::before {
 .popover-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 3px 0; }
 .popover-rank { font-family: var(--font-mono); color: var(--gold); font-weight: 700; width: 12px; flex-shrink: 0; }
 .popover-name { flex: 1; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.popover-amt { font-family: var(--font-mono); color: var(--ink-soft); font-size: 10.5px; flex-shrink: 0; }
 .popover-empty { margin: 0; font-size: 11px; color: var(--ink-soft); }
 
 .slot {
