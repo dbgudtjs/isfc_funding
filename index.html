@@ -47,7 +47,7 @@
       </div>
 
       <div class="crest" aria-label="달성률 배지">
-        <div class="crest-stars" id="crestStars">★★★★★★★</div>
+        <div class="crest-stars" id="crestStars">★★★★★★★★</div>
         <div class="crest-ring-wrap">
           <svg class="crest-ring" viewBox="0 0 200 200">
             <circle class="ring-bg" cx="100" cy="100" r="86"></circle>
@@ -397,8 +397,8 @@ function renderMain(settings, participants, isDemo) {
   ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - rate / 100));
   document.getElementById("ratePct").textContent = rate + "%";
 
-  const litStars = Math.max(1, Math.round((rate / 100) * 7));
-  document.getElementById("crestStars").textContent = "★".repeat(litStars) + "☆".repeat(7 - litStars);
+  const litStars = Math.max(1, Math.round((rate / 100) * 8));
+  document.getElementById("crestStars").textContent = "★".repeat(litStars) + "☆".repeat(8 - litStars);
 
   renderRankings(participants);
 
