@@ -191,14 +191,16 @@
     <a class="kakaopay-link" id="kakaopayLink" href="#" rel="noopener" hidden>카카오페이로 송금하기 →</a>
 
     <p class="step-label step-label-2">STEP 2 · 참여 신청서 작성하기</p>
-    <p class="step-desc">입금하신 <strong>입금자표시명</strong>과 <strong>금액</strong>이 정확히 일치해야 확인이 빨라요. 이름·학번·희망 포지션·희망 등번호도 함께 적어주세요.</p>
+
+    <div class="important-notice">
+      <p>입금하신 <strong>입금자표시명</strong>과 <strong>금액</strong>이 정확히 일치해야 확인이 빨라요. 이름·학번·희망 포지션·희망 등번호도 함께 적어주세요.</p>
+      <p>⏱ 실시간 반영이 아니라 <strong>확인 후 승인하는 절차</strong>가 있어요. 빠른 반영을 원하시면 <strong>14 유형선</strong>에게 연락 주세요.</p>
+    </div>
 
     <a class="form-cta-link" id="formCtaLink" href="#" target="_blank" rel="noopener" hidden>📝 참여 신청서 작성하러 가기 →</a>
     <div class="notice form-pending-notice" id="formPendingNotice" hidden>
       <span>📋 신청서 링크가 아직 연결되지 않았어요. 코드 상단 CONFIG의 GOOGLE_FORM_URL을 채워주세요.</span>
     </div>
-
-    <p class="modal-footnote">제출하신 내용은 입금 내역과 대조 후 승인되면 자동으로 대시보드·선수단에 반영돼요.</p>
   </div>
 </div>
 
@@ -1372,8 +1374,6 @@ body::before {
   color: #1b1b1e; text-decoration: none; font-weight: 700; padding: 12px; border-radius: var(--radius); font-size: 14px;
 }
 
-.modal-footnote { margin: 16px 0 0; font-size: 11px; color: var(--ink-soft); text-align: center; }
-
 .step-label {
   margin: 0 0 10px;
   font-family: var(--font-mono);
@@ -1383,8 +1383,17 @@ body::before {
   color: var(--gold);
 }
 .step-label-2 { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--line); }
-.step-desc { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
-.step-desc strong { color: var(--ink); font-weight: 600; }
+
+.important-notice {
+  background: rgba(205,164,74,0.14);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.important-notice p { margin: 0; font-size: 14px; color: var(--ink); line-height: 1.6; }
+.important-notice p + p { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(205,164,74,0.35); }
+.important-notice strong { color: var(--gold-bright); font-weight: 700; }
 
 .form-cta-link {
   display: block;
