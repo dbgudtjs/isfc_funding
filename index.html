@@ -47,7 +47,7 @@
       </div>
 
       <div class="crest" aria-label="달성률 배지">
-        <div class="crest-stars" id="crestStars">★★★★★★★★</div>
+        <div class="crest-stars" id="crestStars"><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span><span class="star-unlit">★</span></div>
         <div class="crest-ring-wrap">
           <svg class="crest-ring" viewBox="0 0 200 200">
             <circle class="ring-bg" cx="100" cy="100" r="86"></circle>
@@ -398,7 +398,8 @@ function renderMain(settings, participants, isDemo) {
   document.getElementById("ratePct").textContent = rate + "%";
 
   const litStars = Math.max(1, Math.round((rate / 100) * 8));
-  document.getElementById("crestStars").textContent = "★".repeat(litStars) + "☆".repeat(8 - litStars);
+  document.getElementById("crestStars").innerHTML =
+    Array.from({ length: 8 }, (_, i) => `<span class="${i < litStars ? "star-lit" : "star-unlit"}">★</span>`).join("");
 
   renderRankings(participants);
 
@@ -703,6 +704,13 @@ function aggregateByPersonPosition(participants) {
   return Array.from(map.values());
 }
 
+function roleClassForCode(code) {
+  if (code === "GK") return "role-gk";
+  if (["LB", "LCB", "RCB", "RB"].includes(code)) return "role-def";
+  if (["CDM", "LCM", "RCM"].includes(code)) return "role-mid";
+  return "role-atk";
+}
+
 function renderRoster() {
   document.getElementById("slotLegend").textContent =
     "포지션 코드: " + Object.keys(FORMATION.slots).join(" · ");
@@ -723,6 +731,7 @@ function renderRoster() {
   container.innerHTML = Object.entries(FORMATION.slots).map(([code, pos]) => {
     const p = bySlot[code];
     const style = `top:${pos.top}%; left:${pos.left}%;`;
+    const roleClass = roleClassForCode(code);
     if (!p) {
       return `<div class="slot slot-empty" data-code="${code}" style="${style}">
         <div class="slot-circle"><span class="slot-code">${code}</span></div>
@@ -735,7 +744,7 @@ function renderRoster() {
     const avatarInner = photo
       ? `<img src="${photo.replace(/"/g, "&quot;")}" alt="${name}"><span class="slot-number-chip">${number}</span>`
       : `<span class="slot-number-plain">${number}</span>`;
-    return `<div class="slot slot-filled" data-code="${code}" style="${style}">
+    return `<div class="slot slot-filled ${roleClass}" data-code="${code}" style="${style}">
       <div class="slot-circle">${avatarInner}</div>
       <span class="slot-name">${studentId} ${name}</span>
     </div>`;
@@ -1080,7 +1089,9 @@ body::before {
 .figure-target { color: var(--ink-soft); font-size: clamp(18px, 4vw, 24px); }
 
 .crest { position: relative; width: 200px; margin: 8px auto 30px; display: flex; flex-direction: column; align-items: center; }
-.crest-stars { color: var(--gold); font-size: 13px; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 12px rgba(205,164,74,0.5); }
+.crest-stars { font-size: 13px; letter-spacing: 4px; margin-bottom: 10px; }
+.star-lit { color: var(--gold); text-shadow: 0 0 12px rgba(205,164,74,0.6); }
+.star-unlit { color: rgba(240,238,233,0.15); }
 .crest-ring-wrap { position: relative; width: 200px; height: 200px; }
 .crest-ring { width: 200px; height: 200px; transform: rotate(-90deg); }
 .ring-bg { fill: #3d0f21; stroke: rgba(240,238,233,0.08); stroke-width: 10; }
@@ -1309,6 +1320,9 @@ body::before {
   box-shadow: 0 0 10px rgba(205,164,74,0.4);
   overflow: hidden;
 }
+.slot-filled.role-mid .slot-circle { background: #1c4a6e; }
+.slot-filled.role-def .slot-circle { background: #1c6e3f; }
+.slot-filled.role-gk .slot-circle { background: #6e4a1c; }
 .slot-filled .slot-circle img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .slot-number-plain {
   font-family: var(--font-mono); font-weight: 700; font-size: 15px; color: var(--gold-bright);
