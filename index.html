@@ -415,9 +415,28 @@ function renderMain(settings, participants, isDemo) {
 }
 
 /* ---------------- 랭킹 (최고 펀딩 / 누적 펀딩) ---------------- */
+// 표준 공동순위 계산: 같은 금액이면 같은 순위, 다음 순위는 인원수만큼 건너뜀 (예: 1,1,3)
+function assignRanks(sorted, amountFn) {
+  const ranks = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && amountFn(sorted[i]) === amountFn(sorted[i - 1])) {
+      ranks.push(ranks[i - 1]);
+    } else {
+      ranks.push(i + 1);
+    }
+  }
+  const counts = {};
+  ranks.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+  return ranks.map(r => ({ rank: r, tied: counts[r] > 1 }));
+}
+function rankLabel(rankInfo) {
+  return (rankInfo.tied ? "공동 " : "") + rankInfo.rank + "위";
+}
+
 function renderRankings(participants) {
   // 최고 펀딩 랭킹: 개별 입금 건 중 금액이 큰 순서, TOP 5
   const singleSorted = participants.slice().sort((a, b) => toNumber(b["금액"]) - toNumber(a["금액"]));
+  const singleRanks = assignRanks(singleSorted, p => toNumber(p["금액"]));
   const goatBox = document.getElementById("goatSpotlight");
   const singleList = document.getElementById("singleRankingList");
 
@@ -435,7 +454,7 @@ function renderRankings(participants) {
       </div>`;
 
     singleList.innerHTML = singleSorted.slice(1, 5).map((p, i) => {
-      const rank = i + 2;
+      const rank = rankLabel(singleRanks[i + 1]);
       const amt = toNumber(p["금액"]).toLocaleString("ko-KR");
       return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="dots"></span><span class="rank-amt">${amt}원</span></div>`;
     }).join("");
@@ -454,7 +473,16 @@ function renderRankings(participants) {
       totals.set(key, { sid: key, total: amt });
     }
   });
-  const cumulativeSorted = Array.from(totals.values()).sort((a, b) => b.total - a.total);
+  const sidSortValue = sid => {
+    if (sid === "미기재") return Infinity;
+    const n = parseInt(sid, 10);
+    return isNaN(n) ? Infinity : n;
+  };
+  const cumulativeSorted = Array.from(totals.values()).sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return sidSortValue(a.sid) - sidSortValue(b.sid);
+  });
+  const cumulativeRanks = assignRanks(cumulativeSorted, p => p.total);
   const cumGoatBox = document.getElementById("cumGoatSpotlight");
   const cumulativeList = document.getElementById("cumulativeRankingList");
 
@@ -474,7 +502,7 @@ function renderRankings(participants) {
       </div>`;
 
     cumulativeList.innerHTML = cumulativeSorted.slice(1, 5).map((p, i) => {
-      const rank = i + 2;
+      const rank = rankLabel(cumulativeRanks[i + 1]);
       const label = p.sid === "미기재" ? "학번 미기재" : `${escapeHTML(p.sid)}학번`;
       return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${label}</span><span class="dots"></span><span class="rank-amt">${p.total.toLocaleString("ko-KR")}원</span></div>`;
     }).join("");
@@ -500,6 +528,7 @@ function renderPositionRankings(participants) {
       .reduce((sum, p) => sum + toNumber(p["금액"]), 0);
     return { label: group.label, total };
   }).sort((a, b) => b.total - a.total);
+  const positionRanks = assignRanks(totals, g => g.total);
 
   const topGroup = totals[0];
   posGoatBox.innerHTML = `
@@ -512,7 +541,7 @@ function renderPositionRankings(participants) {
     </div>`;
 
   grid.innerHTML = totals.slice(1).map((g, i) => {
-    const rank = i + 2;
+    const rank = rankLabel(positionRanks[i + 1]);
     return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${g.label}</span><span class="dots"></span><span class="rank-amt">${g.total.toLocaleString("ko-KR")}원</span></div>`;
   }).join("");
 }
@@ -1126,7 +1155,7 @@ body::before {
 
 .ranking-list { display: flex; flex-direction: column; gap: 2px; }
 .ranking-row { display: flex; align-items: baseline; gap: 12px; font-size: 14px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
-.rank-num { font-family: var(--font-mono); color: var(--gold); font-weight: 700; font-size: 12px; width: 16px; flex-shrink: 0; }
+.rank-num { font-family: var(--font-mono); color: var(--gold); font-weight: 700; font-size: 11px; min-width: 20px; white-space: nowrap; flex-shrink: 0; }
 .rank-name { flex-shrink: 0; font-weight: 500; }
 .rank-amt { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; color: var(--ink); }
 
