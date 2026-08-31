@@ -432,35 +432,53 @@ function assignRanks(sorted, amountFn) {
 function rankLabel(rankInfo) {
   return (rankInfo.tied ? "공동 " : "") + rankInfo.rank + "위";
 }
+// 동점자를 한 그룹(한 줄)으로 묶기
+function groupByRank(sorted, ranks) {
+  const groups = [];
+  let i = 0;
+  while (i < sorted.length) {
+    const rank = ranks[i].rank;
+    const tied = ranks[i].tied;
+    const items = [sorted[i]];
+    let j = i + 1;
+    while (j < sorted.length && ranks[j].rank === rank) { items.push(sorted[j]); j++; }
+    groups.push({ rank, tied, items });
+    i = j;
+  }
+  return groups;
+}
 
 function renderRankings(participants) {
-  // 최고 펀딩 랭킹: 개별 입금 건 중 금액이 큰 순서, TOP 5
+  // 최고 펀딩 랭킹: 개별 입금 건 중 금액이 큰 순서, TOP 5(줄)
   const singleSorted = participants.slice().sort((a, b) => toNumber(b["금액"]) - toNumber(a["금액"]));
   const singleRanks = assignRanks(singleSorted, p => toNumber(p["금액"]));
+  const singleGroups = groupByRank(singleSorted, singleRanks);
   const goatBox = document.getElementById("goatSpotlight");
   const singleList = document.getElementById("singleRankingList");
 
-  if (singleSorted.length === 0) {
+  if (singleGroups.length === 0) {
     goatBox.innerHTML = "";
     singleList.innerHTML = '<p class="empty-state">아직 참가자가 없어요. 첫 참가자가 되어보세요.</p>';
   } else {
-    const goat = singleSorted[0];
+    const goatGroup = singleGroups[0];
+    const goatCountSuffix = goatGroup.items.length > 1 ? `<span class="goat-tie-count"> · ${goatGroup.items.length}명 공동</span>` : "";
     goatBox.innerHTML = `
       <div class="goat-card goat-card-sid">
         <span class="goat-tag">🐐 GOAT</span>
         <div class="goat-info goat-info-sid">
-          <span class="goat-amt goat-amt-solo">${toNumber(goat["금액"]).toLocaleString("ko-KR")}원</span>
+          <span class="goat-amt goat-amt-solo">${toNumber(goatGroup.items[0]["금액"]).toLocaleString("ko-KR")}원${goatCountSuffix}</span>
         </div>
       </div>`;
 
-    singleList.innerHTML = singleSorted.slice(1, 5).map((p, i) => {
-      const rank = rankLabel(singleRanks[i + 1]);
-      const amt = toNumber(p["금액"]).toLocaleString("ko-KR");
-      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="dots"></span><span class="rank-amt">${amt}원</span></div>`;
+    singleList.innerHTML = singleGroups.slice(1, 5).map(group => {
+      const rank = rankLabel({ rank: group.rank, tied: group.tied });
+      const amt = toNumber(group.items[0]["금액"]).toLocaleString("ko-KR");
+      const countSuffix = group.items.length > 1 ? ` (${group.items.length}명 공동)` : "";
+      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="dots"></span><span class="rank-amt">${amt}원${countSuffix}</span></div>`;
     }).join("");
   }
 
-  // 최고 학번 랭킹: 학번(기수)별 전체 합산, TOP 5
+  // 최고 학번 랭킹: 학번(기수)별 전체 합산, TOP 5(줄)
   const totals = new Map();
   participants.forEach(p => {
     const sid = (p["학번"] || "").trim();
@@ -483,30 +501,29 @@ function renderRankings(participants) {
     return sidSortValue(a.sid) - sidSortValue(b.sid);
   });
   const cumulativeRanks = assignRanks(cumulativeSorted, p => p.total);
+  const cumulativeGroups = groupByRank(cumulativeSorted, cumulativeRanks);
   const cumGoatBox = document.getElementById("cumGoatSpotlight");
   const cumulativeList = document.getElementById("cumulativeRankingList");
+  const sidLabel = p => p.sid === "미기재" ? "학번 미기재" : `${escapeHTML(p.sid)}학번`;
 
-  if (cumulativeSorted.length === 0) {
+  if (cumulativeGroups.length === 0) {
     cumGoatBox.innerHTML = "";
     cumulativeList.innerHTML = '<p class="empty-state">아직 참가자가 없어요.</p>';
   } else {
-    const cumGoatTied = cumulativeSorted.filter(p => p.total === cumulativeSorted[0].total);
-    const cumGoatLabel = cumGoatTied
-      .map(p => p.sid === "미기재" ? "학번 미기재" : `${escapeHTML(p.sid)}학번`)
-      .join(" · ");
+    const cumGoatGroup = cumulativeGroups[0];
     cumGoatBox.innerHTML = `
       <div class="goat-card goat-card-sid">
         <span class="goat-tag">👑 GOAT</span>
         <div class="goat-info goat-info-sid">
-          <span class="goat-name goat-sid-name">${cumGoatLabel}</span>
-          <span class="goat-amt">${cumulativeSorted[0].total.toLocaleString("ko-KR")}원</span>
+          <span class="goat-name goat-sid-name">${cumGoatGroup.items.map(sidLabel).join(" · ")}</span>
+          <span class="goat-amt">${cumGoatGroup.items[0].total.toLocaleString("ko-KR")}원</span>
         </div>
       </div>`;
 
-    cumulativeList.innerHTML = cumulativeSorted.slice(cumGoatTied.length, 5).map((p, i) => {
-      const rank = rankLabel(cumulativeRanks[cumGoatTied.length + i]);
-      const label = p.sid === "미기재" ? "학번 미기재" : `${escapeHTML(p.sid)}학번`;
-      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${label}</span><span class="dots"></span><span class="rank-amt">${p.total.toLocaleString("ko-KR")}원</span></div>`;
+    cumulativeList.innerHTML = cumulativeGroups.slice(1, 5).map(group => {
+      const rank = rankLabel({ rank: group.rank, tied: group.tied });
+      const label = group.items.map(sidLabel).join(" · ");
+      return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${label}</span><span class="dots"></span><span class="rank-amt">${group.items[0].total.toLocaleString("ko-KR")}원</span></div>`;
     }).join("");
   }
 
@@ -531,21 +548,22 @@ function renderPositionRankings(participants) {
     return { label: group.label, total };
   }).sort((a, b) => b.total - a.total);
   const positionRanks = assignRanks(totals, g => g.total);
+  const positionGroups = groupByRank(totals, positionRanks);
 
-  const posGoatTied = totals.filter(g => g.total === totals[0].total);
-  const posGoatLabel = posGoatTied.map(g => g.label).join(" · ");
+  const posGoatGroup = positionGroups[0];
   posGoatBox.innerHTML = `
     <div class="goat-card goat-card-sid">
       <span class="goat-tag">🎽 GOAT</span>
       <div class="goat-info goat-info-sid">
-        <span class="goat-name goat-sid-name">${posGoatLabel}</span>
-        <span class="goat-amt">${totals[0].total.toLocaleString("ko-KR")}원</span>
+        <span class="goat-name goat-sid-name">${posGoatGroup.items.map(g => g.label).join(" · ")}</span>
+        <span class="goat-amt">${posGoatGroup.items[0].total.toLocaleString("ko-KR")}원</span>
       </div>
     </div>`;
 
-  grid.innerHTML = totals.slice(posGoatTied.length).map((g, i) => {
-    const rank = rankLabel(positionRanks[posGoatTied.length + i]);
-    return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${g.label}</span><span class="dots"></span><span class="rank-amt">${g.total.toLocaleString("ko-KR")}원</span></div>`;
+  grid.innerHTML = positionGroups.slice(1).map(group => {
+    const rank = rankLabel({ rank: group.rank, tied: group.tied });
+    const label = group.items.map(g => g.label).join(" · ");
+    return `<div class="ranking-row"><span class="rank-num">${rank}</span><span class="rank-name">${label}</span><span class="dots"></span><span class="rank-amt">${group.items[0].total.toLocaleString("ko-KR")}원</span></div>`;
   }).join("");
 }
 
@@ -1191,6 +1209,7 @@ body::before {
 .goat-info-sid { align-items: center; }
 .goat-sid-name { font-size: 22px; letter-spacing: 0.02em; line-height: 1.3; word-break: keep-all; }
 .goat-amt-solo { font-size: 22px; }
+.goat-tie-count { font-size: 13px; font-weight: 400; color: var(--ink-soft); }
 
 .empty-state { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 20px 0; grid-column: 1 / -1; }
 
